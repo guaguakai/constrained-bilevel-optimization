@@ -33,12 +33,13 @@ if __name__ == '__main__':
 
     # Parameters
     x_dim = 200
-    y_dim = 200
+    y_dim = 500
     n_constraints = 100
 
-    c = torch.rand(x_dim)
+    c = torch.rand(y_dim)
     L = torch.rand(y_dim, y_dim)
-    Q = L.t() @ L # PSD matrix
+    reg = 1
+    Q = L.t() @ L + reg * torch.eye(y_dim) # PSD matrix
     P = torch.rand(x_dim, y_dim)
     A = torch.rand(n_constraints, y_dim) # A y - b \leq 0
     b = torch.rand(n_constraints)
@@ -54,6 +55,9 @@ if __name__ == '__main__':
     g = lambda x,y: 1/2 * y.t() @ Q @ y + x.t() @ P @ y
     h = lambda x,y: A @ y - b 
 
+    # Define lower level problem in CVXPY
+    # TODO
+
     # Compute gradient using pytorch
     x = torch.rand(x_dim, requires_grad=True) # random initialization
     optimizer = torch.optim.Adam([x], lr=lr)
@@ -61,9 +65,10 @@ if __name__ == '__main__':
     if solver == 'cvxpylayer':
         # Cvxpy (differentiable optimization) approach
         for i in range(args.n_iterations):
-            y_cp = cp.Variable(y_dim)
             x_cp = cp.Parameter(x_dim)
-            objective = cp.Minimize(0.5 * cp.quad_form(y_cp, Q_cp) + x_cp.T @ P_cp @ y_cp)
+            y_cp = cp.Variable(y_dim)
+            q_cp = x_cp.T @ P_cp
+            objective = cp.Minimize(0.5 * cp.quad_form(y_cp, Q_cp) + q_cp @ y_cp)
             constraints = [A @ y_cp - b <= 0]
             problem = cp.Problem(objective, constraints)
             cvxpylayer = CvxpyLayer(problem, parameters=[x_cp], variables=[y_cp])
@@ -76,37 +81,48 @@ if __name__ == '__main__':
 
     elif solver == 'ffo':
         # Our algorithm
-        lamb_init = 0.01
+        lamb_init = 1
+        lamb = lamb_init
         for i in range(args.n_iterations):
             # Pre-solve inner optimization problem:  min_y max_\gamma g(x,y) + \gamma^\top h(x,y)
-            x_detach = x.detach()
-            y_init = torch.rand(y_dim)
-            gamma_init = torch.clip(torch.rand(n_constraints), min=0)
-            y_opt = torch.tensor(y_init, requires_grad=True)
-            gamma_opt = torch.tensor(gamma_init, requires_grad=True)
-    
-            for j in range(args.steps):
-                obj_inner = g(x_detach, y_opt) + gamma_opt.t() @ h(x_detach, y_opt)
-                obj_inner.backward()
-                y_opt = y_opt - lr * y_opt.grad # How to satisfy constraints? Projection? I don't want to implement convex projection though  TODO
-                gamma_opt = torch.clip(gamma_opt + lr * gamma_opt.grad, min=0)
-    
-            # lambda update # TODO
-            lamb = lamb_init
-    
-            # Define Lagrangian
-            # L = f(x,y_lamb) + lamb * (g(x, y_lamb + gamma_opt.t() @ h(x, y_lamb) - g(x, y_opt) - gamma_opt.t() @ h(x, y_opt)) + 1/2 * lamb**2 * torch.sum(torch.clip(h(x,y_lamb), min=0) ** 2)
-    
-            # Minimize Lagrangian: solve y_lamb = \argmin L(x,y_lamb)
-            y_lamb = torch.tensor(y_init, requires_grad=True)
-            for j in range(args.steps):
-                lagrangian = f(x_detach, y_lamb) + lamb * (g(x_detach, y_lamb) + gamma_opt.t() @ h(x_detach, y_lamb) - g(x_detach, y_opt) - gamma_opt.t() @ h(x_detach, y_opt)) + 1/2 * lamb**2 * torch.sum(torch.clip(h(x_detach,y_lamb), min=0) ** 2)
-                lagrangian.backward()
-                y_lamb = y_lamb - lr * y_lamb.grad # Projection # TODO
+            x_cp = x.detach().numpy()
+            y_cp = cp.Variable(y_dim)
+            q_cp = x_cp.T @ P_cp
+            objective = cp.Minimize(0.5 * cp.quad_form(y_cp, Q_cp) + q_cp @ y_cp)
+            constraints = [A_cp @ y_cp - b_cp <= 0]
+            problem = cp.Problem(objective, constraints)
+            problem.solve()
 
-            # Compute the final Lagrangian and track gradient over x    
-            final_lagrangian = f(x,y_lamb) + lamb * (g(x, y_lamb) + gamma_opt.t() @ h(x, y_lamb) - g(x, y_opt) - gamma_opt.t() @ h(x, y_opt)) + 1/2 * lamb**2 * torch.sum(torch.clip(h(x,y_lamb), min=0) ** 2)
+            y_opt = y_cp.value
+            gamma_opt = constraints[0].dual_value # We only have one set of constraints
+
+            # print('optimal y:', y_opt)
+            # print('optimal gamma:', gamma_opt)
+    
+            # Solve Lagrangian optimization problem: min_y f(x,y) + \lambda ( g(x,y) + \gamma^\top h(x,y) - g(x,y*) - \gamma^\top h(x,y*) ) + 1/2 * \lambda^2 * |h(x,y*)|^2
+            y_cp = cp.Variable(y_dim)
+            f_cp = c_cp.T @ y_cp
+            g_cp = 0.5 * cp.quad_form(y_cp, Q_cp) + q_cp @ y_cp
+            g_opt_cp = 0.5 * cp.quad_form(y_opt, Q_cp) + q_cp @ y_opt
+            h_cp = A_cp @ y_cp - b_cp
+            h_opt_cp = A_cp @ y_opt - b_cp
+            objective = cp.Minimize( f_cp + lamb * (g_cp + gamma_opt.T @ h_cp - g_opt_cp - gamma_opt.T @ h_opt_cp) + 0.5 * lamb**2 * cp.sum_squares(cp.maximum(h_cp, 0))  )
+            problem = cp.Problem(objective, constraints)
+            problem.solve()
+            
+            y_lamb_opt = y_cp.value
+
+            # Convert numpy to tensor
+            y_opt = torch.tensor(y_opt).float()
+            y_lamb_opt = torch.tensor(y_lamb_opt).float()
+            gamma_opt = torch.tensor(gamma_opt).float()
+
+            # Compute the final Lagrangian and track gradient over x
+            final_lagrangian = f(x,y_lamb_opt) + lamb * (g(x, y_lamb_opt) + gamma_opt.T @ h(x, y_lamb_opt) - g(x, y_opt) - gamma_opt.T @ h(x, y_opt)) + 0.5 * lamb**2 * torch.sum(torch.clip(h(x, y_lamb_opt), min=0) **2)
             final_lagrangian.backward()
             optimizer.step()
-            loss = f(x, y_lamb).item()
+            loss = f(x, y_opt).item()
             print(i, loss) 
+
+            # lambda update # TODO
+            lamb = lamb_init
