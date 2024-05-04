@@ -41,6 +41,7 @@ if __name__ == '__main__':
     n_constraints = args.n_constraints
 
     c = torch.rand(y_dim)
+    c = c / torch.norm(c) # normalize it
     L = torch.rand(y_dim, y_dim)
     reg = 1
     Q = L.t() @ L + reg * torch.eye(y_dim) # PSD matrix
@@ -55,16 +56,17 @@ if __name__ == '__main__':
     b_cp = b.numpy()
     
     # Define functions
-    f = lambda x,y: c @ y + 0.01 * torch.norm(x) + 0.01 * torch.norm(y)
+    f = lambda x,y: c @ y + 0.01 * torch.norm(x)**2 + 0.01 * torch.norm(y)**2
     g = lambda x,y: 1/2 * y.t() @ Q @ y + x.t() @ P @ y
     h = lambda x,y: A @ y - b 
 
     # Compute gradient using pytorch
     x = torch.rand(x_dim, requires_grad=True) # random initialization
     optimizer = torch.optim.Adam([x], lr=lr)
+    # optimizer = torch.optim.SGD([x], lr=lr)
 
     # Output file
-    f_output = open('results/ydim{}/{}_seed{}.txt'.format(ydim, solver, seed), 'w')
+    f_output = open('results/ydim{}/{}_seed{}.txt'.format(y_dim, solver, seed), 'w')
     f_output.write('Iteration, loss, time \n')
 
     if solver == 'cvxpylayer':
@@ -83,6 +85,7 @@ if __name__ == '__main__':
             loss = f(x, solution)  # + 1/2 * x @ x
             loss.backward()
             optimizer.step()
+            optimizer.zero_grad()
             time_elapsed = time.time() - start_time
             print(i, loss.item(), time_elapsed)
             f_output.write('{}, {}, {} \n'.format(i, loss, time_elapsed))
@@ -101,6 +104,7 @@ if __name__ == '__main__':
             loss = f(x, y_cp.value)  # + 1/2 * x @ x
             loss.backward()
             optimizer.step()
+            optimizer.zero_grad()
 
             time_elapsed = time.time() - start_time
             print(i, loss.item(), time_elapsed)
@@ -108,18 +112,21 @@ if __name__ == '__main__':
 
     elif solver == 'ffo':
         # Our algorithm
-        lamb_init = 1
+        epsilon = 0.01
+        lamb_init = 1 / epsilon
         lamb = lamb_init
+        delta = torch.zeros(x_dim)
+        xx = x + delta
         for i in range(args.n_iterations):
             start_time = time.time()
             # Pre-solve inner optimization problem:  min_y max_\gamma g(x,y) + \gamma^\top h(x,y)
-            x_cp = x.detach().numpy()
+            x_cp = xx.detach().numpy()
             y_cp = cp.Variable(y_dim)
             q_cp = x_cp.T @ P_cp
             objective = cp.Minimize(0.5 * cp.quad_form(y_cp, Q_cp) + q_cp @ y_cp)
             constraints = [A_cp @ y_cp - b_cp <= 0]
             problem = cp.Problem(objective, constraints)
-            problem.solve()
+            problem.solve(eps_abs=1e-12, max_iter=100000)
 
             y_opt = y_cp.value
             gamma_opt = constraints[0].dual_value # We only have one set of constraints
@@ -136,7 +143,7 @@ if __name__ == '__main__':
             h_opt_cp = A_cp @ y_opt - b_cp
             objective = cp.Minimize( f_cp + lamb * (g_cp + gamma_opt.T @ h_cp - g_opt_cp - gamma_opt.T @ h_opt_cp) + 0.5 * lamb**2 * cp.sum_squares(cp.maximum(h_cp, 0))  )
             problem = cp.Problem(objective, constraints)
-            problem.solve()
+            problem.solve(eps_abs=1e-12, max_iter=100000)
             
             y_lamb_opt = y_cp.value
 
@@ -146,10 +153,25 @@ if __name__ == '__main__':
             gamma_opt = torch.tensor(gamma_opt).float()
 
             # Compute the final Lagrangian and track gradient over x
-            final_lagrangian = f(x,y_lamb_opt) + lamb * (g(x, y_lamb_opt) + gamma_opt.T @ h(x, y_lamb_opt) - g(x, y_opt) - gamma_opt.T @ h(x, y_opt)) + 0.5 * lamb**2 * torch.sum(torch.clip(h(x, y_lamb_opt), min=0) **2)
-            final_lagrangian.backward()
+            final_lagrangian = f(xx,y_lamb_opt) + lamb * (g(xx, y_lamb_opt) + gamma_opt.T @ h(xx, y_lamb_opt) - g(xx, y_opt) - gamma_opt.T @ h(xx, y_opt)) + 0.5 * lamb**2 * torch.sum(torch.clip(h(xx, y_lamb_opt), min=0) **2)
+            # final_lagrangian.backward()
+            # x.grad = torch.clamp(x.grad, max=1, min=-1)
+
+            # Gradient and variable update
+            D = 1
+            gradient = torch.autograd.grad(final_lagrangian, xx)[0]
+            s = torch.rand(x_dim)
+            xx = x + s * delta
+            with torch.no_grad():
+                # x += delta
+                # x -= gradient * lr
+                x.grad = -delta
+            delta = torch.clamp(delta - lr * gradient, min=-D, max=D)
             optimizer.step()
-            loss = f(x, y_opt).item()
+            optimizer.zero_grad()
+
+            # Compute hyperobjective (this is not accurate but should be close enough)
+            loss = f(xx, y_opt).item()
 
             # lambda update # TODO
             lamb = lamb_init
