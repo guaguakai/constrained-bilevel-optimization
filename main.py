@@ -62,8 +62,8 @@ if __name__ == '__main__':
 
     # Compute gradient using pytorch
     x = torch.rand(x_dim, requires_grad=True) # random initialization
-    optimizer = torch.optim.Adam([x], lr=lr)
-    # optimizer = torch.optim.SGD([x], lr=lr)
+    # optimizer = torch.optim.Adam([x], lr=lr)
+    optimizer = torch.optim.SGD([x], lr=lr)
 
     # Output file
     f_output = open('results/ydim{}/{}_seed{}.txt'.format(y_dim, solver, seed), 'w')
@@ -116,9 +116,13 @@ if __name__ == '__main__':
         lamb_init = 1 / epsilon
         lamb = lamb_init
         delta = torch.zeros(x_dim)
-        xx = x + delta
         for i in range(args.n_iterations):
             start_time = time.time()
+            # Perturbed x to get xx
+            # s = torch.rand(x_dim)
+            s = torch.normal(torch.zeros(x_dim), torch.ones(x_dim)) * 0.01
+            xx = x + s
+
             # Pre-solve inner optimization problem:  min_y max_\gamma g(x,y) + \gamma^\top h(x,y)
             x_cp = xx.detach().numpy()
             y_cp = cp.Variable(y_dim)
@@ -136,7 +140,7 @@ if __name__ == '__main__':
     
             # Solve Lagrangian optimization problem: min_y f(x,y) + \lambda ( g(x,y) + \gamma^\top h(x,y) - g(x,y*) - \gamma^\top h(x,y*) ) + 1/2 * \lambda^2 * |h(x,y*)|^2
             y_cp = cp.Variable(y_dim)
-            f_cp = c_cp.T @ y_cp
+            f_cp = c_cp.T @ y_cp + 0.01 * cp.sum_squares(x_cp) + 0.01 * cp.sum_squares(y_cp)
             g_cp = 0.5 * cp.quad_form(y_cp, Q_cp) + q_cp @ y_cp
             g_opt_cp = 0.5 * cp.quad_form(y_opt, Q_cp) + q_cp @ y_opt
             h_cp = A_cp @ y_cp - b_cp
@@ -160,13 +164,12 @@ if __name__ == '__main__':
             # Gradient and variable update
             D = 1
             gradient = torch.autograd.grad(final_lagrangian, xx)[0]
-            s = torch.rand(x_dim)
-            xx = x + s * delta
             with torch.no_grad():
                 # x += delta
                 # x -= gradient * lr
-                x.grad = -delta
-            delta = torch.clamp(delta - lr * gradient, min=-D, max=D)
+                # x.grad = -delta
+                x.grad = gradient
+            # delta = gradient * lr # torch.clamp(delta - lr * gradient, min=-D, max=D)
             optimizer.step()
             optimizer.zero_grad()
 
