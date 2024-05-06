@@ -101,7 +101,7 @@ if __name__ == '__main__':
             problem = cp.Problem(objective, constraints)
             problem.solve()
     
-            loss = f(x, y_cp.value)  # + 1/2 * x @ x
+            loss = f(x, torch.tensor(y_cp.value).float())  # + 1/2 * x @ x
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
