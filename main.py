@@ -55,15 +55,15 @@ if __name__ == '__main__':
     A_cp = A.numpy()
     b_cp = b.numpy()
     
-    # Define functions
+    # Define functions (pytorch versions)
     f = lambda x,y: c @ y + 0.01 * torch.norm(x)**2 + 0.01 * torch.norm(y)**2
     g = lambda x,y: 1/2 * y.t() @ Q @ y + x.t() @ P @ y
     h = lambda x,y: A @ y - b 
 
     # Compute gradient using pytorch
     x = torch.rand(x_dim, requires_grad=True) # random initialization
-    # optimizer = torch.optim.Adam([x], lr=lr)
-    optimizer = torch.optim.SGD([x], lr=lr)
+    optimizer = torch.optim.Adam([x], lr=lr)
+    # optimizer = torch.optim.SGD([x], lr=lr)
 
     # Output file
     f_output = open('results/ydim{}/{}_seed{}.txt'.format(y_dim, solver, seed), 'w')

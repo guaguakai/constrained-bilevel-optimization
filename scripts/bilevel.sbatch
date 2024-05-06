@@ -10,4 +10,4 @@ cd /storage/home/hcoda1/9/kwang692/p-kwang692-0/constrained-bilevel-optimization
 module load anaconda3
 conda activate bilevel
 
-python3 main.py --solver=$SOLVER --seed=$SEED
+python3 main.py --solver=$SOLVER --seed=$SEED --ydim=$YDIM --n-constraints=$NCON --lr=0.01
