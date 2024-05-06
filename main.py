@@ -40,11 +40,13 @@ if __name__ == '__main__':
     y_dim = args.ydim
     n_constraints = args.n_constraints
 
+    L = torch.rand(10, y_dim)
+    L_norm = torch.norm(L) # torch.norm(Q)
     c = torch.rand(y_dim)
     c = c / torch.norm(c) # normalize it
-    L = torch.rand(y_dim, y_dim)
     reg = 1
-    Q = L.t() @ L + reg * torch.eye(y_dim) # PSD matrix
+    Q = L.t() @ L
+    Q = Q + reg * torch.eye(y_dim) # PSD matrix, normalize the condition number of Q
     P = torch.rand(x_dim, y_dim)
     A = torch.rand(n_constraints, y_dim) # A y - b \leq 0
     b = torch.rand(n_constraints)
@@ -101,7 +103,7 @@ if __name__ == '__main__':
             problem = cp.Problem(objective, constraints)
             problem.solve()
     
-            loss = f(x, y_cp.value)  # + 1/2 * x @ x
+            loss = f(x, torch.tensor(y_cp.value).float())
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
@@ -130,7 +132,7 @@ if __name__ == '__main__':
             objective = cp.Minimize(0.5 * cp.quad_form(y_cp, Q_cp) + q_cp @ y_cp)
             constraints = [A_cp @ y_cp - b_cp <= 0]
             problem = cp.Problem(objective, constraints)
-            problem.solve(eps_abs=1e-12, max_iter=100000)
+            problem.solve() # eps_abs=1e-12, max_iter=100000)
 
             y_opt = y_cp.value
             gamma_opt = constraints[0].dual_value # We only have one set of constraints
@@ -147,7 +149,7 @@ if __name__ == '__main__':
             h_opt_cp = A_cp @ y_opt - b_cp
             objective = cp.Minimize( f_cp + lamb * (g_cp + gamma_opt.T @ h_cp - g_opt_cp - gamma_opt.T @ h_opt_cp) + 0.5 * lamb**2 * cp.sum_squares(cp.maximum(h_cp, 0))  )
             problem = cp.Problem(objective, constraints)
-            problem.solve(eps_abs=1e-12, max_iter=100000)
+            problem.solve() # eps_abs=1e-12, max_iter=100000)
             
             y_lamb_opt = y_cp.value
 
