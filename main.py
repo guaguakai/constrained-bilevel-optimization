@@ -25,6 +25,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', default = 0, type = int)
     parser.add_argument('--steps', type=int, default=20)
     parser.add_argument('--n-iterations', type=int, default=1000)
+    parser.add_argument('--eps', type=float, default=0.01)
 
     args = parser.parse_args()
     
@@ -33,6 +34,7 @@ if __name__ == '__main__':
     np.random.seed(seed)
     torch.manual_seed(seed)
     lr = args.lr
+    eps = args.eps
     solver = args.solver
 
     # Parameters
@@ -40,13 +42,13 @@ if __name__ == '__main__':
     y_dim = args.ydim
     n_constraints = args.n_constraints
 
-    L = torch.rand(10, y_dim)
+    L = torch.rand(y_dim, y_dim)
     L_norm = torch.norm(L) # torch.norm(Q)
     c = torch.rand(y_dim)
     c = c / torch.norm(c) # normalize it
     reg = 1
     Q = L.t() @ L
-    Q = Q + reg * torch.eye(y_dim) # PSD matrix, normalize the condition number of Q
+    Q = Q + reg * torch.eye(y_dim)  # PSD matrix, normalize the condition number of Q
     P = torch.rand(x_dim, y_dim)
     A = torch.rand(n_constraints, y_dim) # A y - b \leq 0
     b = torch.rand(n_constraints)
@@ -56,6 +58,8 @@ if __name__ == '__main__':
     P_cp = P.numpy()
     A_cp = A.numpy()
     b_cp = b.numpy()
+
+    cvxpy_solver = cp.SCS
     
     # Define functions (pytorch versions)
     f = lambda x,y: c @ y + 0.01 * torch.norm(x)**2 + 0.01 * torch.norm(y)**2
@@ -68,7 +72,11 @@ if __name__ == '__main__':
     # optimizer = torch.optim.SGD([x], lr=lr)
 
     # Output file
-    f_output = open('results/ydim{}/{}_seed{}.txt'.format(y_dim, solver, seed), 'w')
+    directory_path = 'results/ydim{}'.format(y_dim)
+    if os.path.exists(directory_path) == False:
+        os.mkdir(directory_path)
+
+    f_output = open(directory_path + '/{}_eps{}_seed{}.txt'.format(solver, eps, seed), 'w')
     f_output.write('Iteration, loss, time \n')
 
     if solver == 'cvxpylayer':
@@ -114,10 +122,12 @@ if __name__ == '__main__':
 
     elif solver == 'ffo':
         # Our algorithm
-        epsilon = 0.01
-        lamb_init = 1 / epsilon
+        eps_abs = eps ** 2
+        warm_start = True
+        lamb_init = 1 / eps
         lamb = lamb_init
         delta = torch.zeros(x_dim)
+        y_lamb_opt = None
         for i in range(args.n_iterations):
             start_time = time.time()
             # Perturbed x to get xx
@@ -131,8 +141,14 @@ if __name__ == '__main__':
             q_cp = x_cp.T @ P_cp
             objective = cp.Minimize(0.5 * cp.quad_form(y_cp, Q_cp) + q_cp @ y_cp)
             constraints = [A_cp @ y_cp - b_cp <= 0]
+            if y_lamb_opt == None:
+                y_cp.value = y_lamb_opt
+
             problem = cp.Problem(objective, constraints)
-            problem.solve() # eps_abs=1e-12, max_iter=100000)
+            problem.solve(solver=cvxpy_solver, eps_abs=eps_abs, warm_start=warm_start)
+
+            constrained_inner_problem_time = time.time() - start_time
+            mid_time = time.time()
 
             y_opt = y_cp.value
             gamma_opt = constraints[0].dual_value # We only have one set of constraints
@@ -148,8 +164,10 @@ if __name__ == '__main__':
             h_cp = A_cp @ y_cp - b_cp
             h_opt_cp = A_cp @ y_opt - b_cp
             objective = cp.Minimize( f_cp + lamb * (g_cp + gamma_opt.T @ h_cp - g_opt_cp - gamma_opt.T @ h_opt_cp) + 0.5 * lamb**2 * cp.sum_squares(cp.maximum(h_cp, 0))  )
+            y_cp.value = y_opt
             problem = cp.Problem(objective, constraints)
-            problem.solve() # eps_abs=1e-12, max_iter=100000)
+            problem.solve(solver=cvxpy_solver, eps_abs=eps_abs, warm_start=warm_start)
+            lagrangian_time = time.time() - mid_time
             
             y_lamb_opt = y_cp.value
 
@@ -183,7 +201,7 @@ if __name__ == '__main__':
 
             # Output file
             time_elapsed = time.time() - start_time
-            print(i, loss, time_elapsed)
-            f_output.write('{}, {}, {} \n'.format(i, loss, time_elapsed))
+            print(i, loss, time_elapsed, constrained_inner_problem_time, lagrangian_time)
+            f_output.write('{}, {}, {}, {}, {} \n'.format(i, loss, time_elapsed, constrained_inner_problem_time, lagrangian_time))
 
     f_output.close()
