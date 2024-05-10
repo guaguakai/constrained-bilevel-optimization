@@ -83,11 +83,11 @@ if __name__ == '__main__':
     # optimizer = torch.optim.SGD([x], lr=lr)
 
     # Output file
-    directory_path = 'results/{}/ydim{}/'.format(folder, y_dim)
+    directory_path = 'results/{}/ydim{}'.format(folder, y_dim)
     if os.path.exists(directory_path) == False:
         os.mkdir(directory_path)
 
-    f_output = open(directory_path + '{}_eps{}_seed{}.txt'.format(solver, eps, seed), 'w')
+    f_output = open(directory_path + '/{}_eps{}_seed{}.txt'.format(solver, eps, seed), 'w')
     f_output.write('Iteration, loss, time \n')
 
     grad_list = []
@@ -233,8 +233,8 @@ if __name__ == '__main__':
 
     f_output.close()
 
-    with open(directory_path + '{}_eps{}_seed{}.pickle'.format(solver, eps, seed), 'wb') as handle:
+    with open(directory_path + '/{}_eps{}_seed{}.pickle'.format(solver, eps, seed), 'wb') as handle:
         pickle.dump(grad_list, handle)
 
-    print(directory_path + '{}_eps{}_seed{}.pickle'.format(solver, eps, seed))
+    print(directory_path + '/{}_eps{}_seed{}.pickle'.format(solver, eps, seed))
     
