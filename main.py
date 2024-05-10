@@ -26,6 +26,8 @@ if __name__ == '__main__':
     parser.add_argument('--steps', type=int, default=20)
     parser.add_argument('--n-iterations', type=int, default=1000)
     parser.add_argument('--eps', type=float, default=0.01)
+    parser.add_argument('--delta', type=float, default=0.01)
+    parser.add_argument('--folder', type=str, default='test')
 
     args = parser.parse_args()
     
@@ -35,7 +37,9 @@ if __name__ == '__main__':
     torch.manual_seed(seed)
     lr = args.lr
     eps = args.eps
+    delta = args.delta
     solver = args.solver
+    folder = args.folder
 
     # Parameters
     x_dim = args.xdim
@@ -59,6 +63,13 @@ if __name__ == '__main__':
     A_cp = A.numpy()
     b_cp = b.numpy()
 
+    print('Verifying if the random samples are consistent...')
+    print('c average: {}'.format(np.mean(c_cp)))
+    print('Q average: {}'.format(np.mean(Q_cp)))
+    print('P average: {}'.format(np.mean(P_cp)))
+    print('A average: {}'.format(np.mean(A_cp)))
+    print('b average: {}'.format(np.mean(b_cp)))
+
     cvxpy_solver = cp.SCS
     
     # Define functions (pytorch versions)
@@ -72,17 +83,24 @@ if __name__ == '__main__':
     # optimizer = torch.optim.SGD([x], lr=lr)
 
     # Output file
-    directory_path = 'results/ydim{}'.format(y_dim)
+    directory_path = 'results/{}/ydim{}/'.format(folder, y_dim)
     if os.path.exists(directory_path) == False:
         os.mkdir(directory_path)
 
-    f_output = open(directory_path + '/{}_eps{}_seed{}.txt'.format(solver, eps, seed), 'w')
+    f_output = open(directory_path + '{}_eps{}_seed{}.txt'.format(solver, eps, seed), 'w')
     f_output.write('Iteration, loss, time \n')
+
+    grad_list = []
 
     if solver == 'cvxpylayer':
         # Cvxpy (differentiable optimization) approach
         for i in range(args.n_iterations):
             start_time = time.time()
+            # Perturbation
+            s = torch.normal(torch.zeros(x_dim), torch.ones(x_dim)) * delta
+            xx = x + s
+
+            # cvxpylayer
             x_cp = cp.Parameter(x_dim)
             y_cp = cp.Variable(y_dim)
             q_cp = x_cp.T @ P_cp
@@ -91,9 +109,16 @@ if __name__ == '__main__':
             problem = cp.Problem(objective, constraints)
             cvxpylayer = CvxpyLayer(problem, parameters=[x_cp], variables=[y_cp])
     
-            solution, = cvxpylayer(x)
-            loss = f(x, solution)  # + 1/2 * x @ x
-            loss.backward()
+            solution, = cvxpylayer(xx)
+            loss = f(xx, solution)  # + 1/2 * x @ x
+            gradient = torch.autograd.grad(loss, xx)[0]
+            with torch.no_grad():
+                # x += delta
+                # x -= gradient * lr
+                # x.grad = -delta
+                x.grad = gradient
+                grad_list.append(gradient.numpy().copy())
+
             optimizer.step()
             optimizer.zero_grad()
             time_elapsed = time.time() - start_time
@@ -132,7 +157,7 @@ if __name__ == '__main__':
             start_time = time.time()
             # Perturbed x to get xx
             # s = torch.rand(x_dim)
-            s = torch.normal(torch.zeros(x_dim), torch.ones(x_dim)) * 0.01
+            s = torch.normal(torch.zeros(x_dim), torch.ones(x_dim)) * delta
             xx = x + s
 
             # Pre-solve inner optimization problem:  min_y max_\gamma g(x,y) + \gamma^\top h(x,y)
@@ -189,6 +214,8 @@ if __name__ == '__main__':
                 # x -= gradient * lr
                 # x.grad = -delta
                 x.grad = gradient
+                grad_list.append(gradient.numpy().copy())
+                print(gradient)
             # delta = gradient * lr # torch.clamp(delta - lr * gradient, min=-D, max=D)
             optimizer.step()
             optimizer.zero_grad()
@@ -205,3 +232,9 @@ if __name__ == '__main__':
             f_output.write('{}, {}, {}, {}, {} \n'.format(i, loss, time_elapsed, constrained_inner_problem_time, lagrangian_time))
 
     f_output.close()
+
+    with open(directory_path + '{}_eps{}_seed{}.pickle'.format(solver, eps, seed), 'wb') as handle:
+        pickle.dump(grad_list, handle)
+
+    print(directory_path + '{}_eps{}_seed{}.pickle'.format(solver, eps, seed))
+    
