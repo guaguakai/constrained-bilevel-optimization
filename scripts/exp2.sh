@@ -4,9 +4,9 @@ ITER=10
 FOLDER=exp2
 EPS=0.01
 
-for SEED in {1..5}
+for SEED in {6..20}
 do
-	for YDIM in {1..30}00
+	for YDIM in {1..16}00
 	do
 		NCON=$((YDIM/5))
 		for SOLVER in cvxpylayer ffo
