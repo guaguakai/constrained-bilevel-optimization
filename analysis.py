@@ -5,9 +5,15 @@ import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pickle
+import argparse
 
 if __name__ == '__main__':
-    file_type = 'png'
+    parser = argparse.ArgumentParser(description='Analysis of the results')
+    parser.add_argument('--file_type', type=str, default='pdf', help='File type of the figures')
+
+    args = parser.parse_args()
+
+    file_type = args.file_type
     # ================================== EXP 1 ===================================
     # Convergence analysis
     ffo_result, cvxpylayer_result = {}, {}
@@ -19,7 +25,7 @@ if __name__ == '__main__':
     eps = 0.01
     ydim_list = [5, 10, 20, 50, 100, 200, 500, 800, 1000] # list(range(100,1000,100))
     directory_path = 'exp1/'
-    seed_list = [1,2,3,4,5]
+    seed_list = list(set(range(1,31,1)))
     for ydim in ydim_list:
         directory_name = directory_path + 'ydim{}'.format(ydim)
         # Initialize the dictionary
@@ -80,7 +86,7 @@ if __name__ == '__main__':
         ax1.set_zorder(ax2.get_zorder() + 1)
         ax1.patch.set_visible(False)
 
-        # plt.title('Convergence plot with y dimention = {}'.format(str(ydim)), fontsize=28)
+        # plt.title('Convergence plot with y dimension = {}'.format(str(ydim)), fontsize=28)
         plt.xlabel('Iteration', fontsize=28)
 
         # handles, labels = plt.gca().get_legend_handles_labels()
@@ -100,7 +106,7 @@ if __name__ == '__main__':
     eps = 0.01
     ydim_list = list(range(100,1700,100))
     directory_path = 'exp2/'
-    seed_list = [2,3,4,5]
+    seed_list = list(set(range(1,21,1)) - set([1, 10,11,12,13,14,18,19,20]))
     for ydim in ydim_list:
         directory_name = directory_path + 'ydim{}'.format(ydim)
         # Initialize the dictionary
@@ -110,11 +116,17 @@ if __name__ == '__main__':
         cvxpylayer_filename_list = ['cvxpylayer_eps{}_seed{}.txt'.format(eps, seed) for seed in seed_list]
         ffo_filename_list        = ['ffo_eps{}_seed{}.txt'.format(eps, seed) for seed in seed_list]
         for filename in cvxpylayer_filename_list:
-            df = pd.read_csv('results/' + directory_name + '/' + filename)
-            cvxpylayer_result[ydim].append(df.values[:,:3])
+            try:
+                df = pd.read_csv('results/' + directory_name + '/' + filename)
+                cvxpylayer_result[ydim].append(df.values[:,:3])
+            except:
+                print(ydim, filename)
         for filename in ffo_filename_list:
-            df = pd.read_csv('results/' + directory_name + '/' + filename, header=None, names=['iteration', 'loss', 'time', 'time1', 'time2'], skiprows=1)
-            ffo_result[ydim].append(df.values[:,:3])
+            try:
+                df = pd.read_csv('results/' + directory_name + '/' + filename, header=None, names=['iteration', 'loss', 'time', 'time1', 'time2'], skiprows=1)
+                ffo_result[ydim].append(df.values[:,:3])
+            except:
+                print(ydim, filename)
 
         ffo_result_mean[ydim] = np.mean(ffo_result[ydim], axis=0)
         cvxpylayer_result_mean[ydim] = np.mean(cvxpylayer_result[ydim], axis=0)
@@ -129,7 +141,7 @@ if __name__ == '__main__':
     time_results = pd.DataFrame(time_results)
     plt.figure(figsize=(10, 6))
     g = sns.barplot(x='ydim', y='value', hue='variable', data=pd.melt(time_results, ['ydim']))
-    g.set_xlabel('Inner level dimention', fontsize=28)
+    g.set_xlabel('Inner level dimension', fontsize=28)
     g.set_ylabel('Time (s)', fontsize=28)
 
     # Set tick label size
@@ -199,6 +211,7 @@ if __name__ == '__main__':
             ffo_result_mean[ydim][eps] = np.mean(ffo_result[ydim][eps], axis=0)
             cvxpylayer_result_mean[ydim][eps] = np.mean(cvxpylayer_result[ydim][eps], axis=0)
 
+            x_list = list(range(1, ffo_result_mean[ydim][eps].shape[0] + 1))
             # Create a secondary y-axis
             sns.lineplot(x=x_list, y=ffo_result_mean[ydim][eps][:,1], label='ffo ' + r'$\alpha^2$' + '={}'.format(eps), ax=ax1, linewidth=2.5)
 
