@@ -1,5 +1,5 @@
 FOLDER=exp1
-EPS=0.01
+EPS=1
 ITER=1000
 
 for SEED in {1..10}
