@@ -6,7 +6,7 @@ EPS=0.01
 
 for SEED in {1..10}
 do
-	for YDIM in {1..16}00
+	for YDIM in {1..10}00
 	do
 		NCON=$((YDIM/5))
 		for SOLVER in cvxpylayer ffo
