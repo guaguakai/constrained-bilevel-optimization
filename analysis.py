@@ -23,23 +23,24 @@ if __name__ == '__main__':
     grad_differences = {}
 
     eps = 0.01
-    ydim_list = [5, 10, 20, 50, 100, 200, 500] # , 800, 1000] # list(range(100,1000,100))
+    ydim_list = [100, 200, 500] # [5, 10, 20, 50, 100, 200, 500] # , 800, 1000] # list(range(100,1000,100))
     directory_path = 'exp1_bilinear/'
-    seed_list = list(set(range(1,31,1)) - set([2,9,29]))
+    seed_list = list(set(range(1,11,1))) # - set([2,9,29]))
     for ydim in ydim_list:
         directory_name = directory_path + 'ydim{}'.format(ydim)
+        directory_name_exp3 = 'exp3_bilinear/' + 'ydim{}'.format(ydim)
         # Initialize the dictionary
         ffo_result[ydim], cvxpylayer_result[ydim] = [], []
 
         grad_differences[ydim] = []
 
         # Read the results
-        ffo_filename_list                 = ['ffo_eps{}_seed{}.txt'.format(eps, seed) for seed in seed_list]
-        ffo_grad_filename_list            = ['ffo_eps{}_seed{}.pickle'.format(eps, seed) for seed in seed_list]
+        ffo_filename_list                 = ['ffo_eps{}_seed{}.txt'.format(1.0, seed) for seed in seed_list]
+        ffo_grad_filename_list            = ['ffo_eps{}_seed{}.pickle'.format(1.0, seed) for seed in seed_list]
         cvxpylayer_filename_list          = ['cvxpylayer_eps{}_seed{}.txt'.format(eps, seed) for seed in seed_list]
         cvxpylayer_gradient_filename_list = ['cvxpylayer_eps{}_seed{}.pickle'.format(eps, seed) for seed in seed_list]
         for filename in ffo_filename_list:
-            df = pd.read_csv('results/' + directory_name + '/' + filename, header=None, names=['iteration', 'loss', 'time', 'time1', 'time2'], skiprows=1)
+            df = pd.read_csv('results/' + directory_name_exp3 + '/' + filename, header=None, names=['iteration', 'loss', 'time', 'time1', 'time2'], skiprows=1)
             ffo_result[ydim].append(df.values[:,:3])
         for filename in cvxpylayer_filename_list:
             df = pd.read_csv('results/' + directory_name + '/' + filename)
@@ -58,6 +59,8 @@ if __name__ == '__main__':
 
         for ffo_grad, cvxpylayer_grad in zip(ffo_grad_list, cvxpylaer_grad_list):
             grad_differences[ydim].append(np.linalg.norm(ffo_grad - cvxpylayer_grad))
+
+        # grad_differences[ydim] = np.convolve(grad_differences[ydim], np.ones(10)/10, mode='same')
 
         # Plot the loss results
         data_type = 'loss'
@@ -81,7 +84,7 @@ if __name__ == '__main__':
 
         y1_min, y1_max = ax1.get_ylim()
         y2_min, y2_max = ax2.get_ylim()
-        ax2.set_ylim(bottom=0, top=0.5)
+        ax2.set_ylim(bottom=0, top=1)
 
         ax1.set_zorder(ax2.get_zorder() + 1)
         ax1.patch.set_visible(False)
