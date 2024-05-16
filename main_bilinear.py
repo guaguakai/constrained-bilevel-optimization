@@ -200,7 +200,11 @@ if __name__ == '__main__':
             gamma_opt = torch.tensor(gamma_opt).float()
 
             # Compute the final Lagrangian and track gradient over x
-            final_lagrangian = f(xx,y_lamb_opt) + lamb * (g(xx, y_lamb_opt) + gamma_opt.T @ h(xx, y_lamb_opt) - g(xx, y_opt) - gamma_opt.T @ h(xx, y_opt)) + 0.5 * lamb**2 * torch.sum(h(xx, y_lamb_opt) **2)
+            if sum(active_constraints) == 0:
+                constraint_violation = 0
+            else:
+                constraint_violation = torch.norm(h(xx, y_lamb_opt)[active_constraints])
+            final_lagrangian = f(xx,y_lamb_opt) + lamb * (g(xx, y_lamb_opt) + gamma_opt.T @ h(xx, y_lamb_opt) - g(xx, y_opt) - gamma_opt.T @ h(xx, y_opt)) + 0.5 * lamb**2 * constraint_violation**2
             # final_lagrangian.backward()
             # x.grad = torch.clamp(x.grad, max=1, min=-1)
 

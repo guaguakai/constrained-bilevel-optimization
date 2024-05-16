@@ -25,7 +25,7 @@ if __name__ == '__main__':
     eps = 0.01
     ydim_list = [5, 10, 20, 50, 100, 200, 500] # , 800, 1000] # list(range(100,1000,100))
     directory_path = 'exp1_bilinear/'
-    seed_list = list(set(range(2,11,1)))
+    seed_list = list(set(range(1,31,1)) - set([2,9,29]))
     for ydim in ydim_list:
         directory_name = directory_path + 'ydim{}'.format(ydim)
         # Initialize the dictionary
@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
         y1_min, y1_max = ax1.get_ylim()
         y2_min, y2_max = ax2.get_ylim()
-        ax2.set_ylim(bottom=0, top=y2_max*4)
+        ax2.set_ylim(bottom=0, top=0.5)
 
         ax1.set_zorder(ax2.get_zorder() + 1)
         ax1.patch.set_visible(False)
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     eps = 0.01
     ydim_list = list(range(100,1100,100))
     directory_path = 'exp2_bilinear/'
-    seed_list = list(set(range(2,11,1))) #- set([1, 10,11,12,13,14,18,19,20]))
+    seed_list = list(set(range(1,11,1))) #- set([1, 10,11,12,13,14,18,19,20]))
     for ydim in ydim_list:
         directory_name = directory_path + 'ydim{}'.format(ydim)
         # Initialize the dictionary
