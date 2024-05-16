@@ -45,6 +45,7 @@ if __name__ == '__main__':
     x_dim = args.xdim
     y_dim = args.ydim
     n_constraints = args.n_constraints
+    D = 1 # gradient clipping size
 
     L = torch.rand(y_dim, y_dim)
     L_norm = torch.norm(L) # torch.norm(Q)
@@ -119,6 +120,7 @@ if __name__ == '__main__':
             solution, = cvxpylayer(xx, A_xx, b_xx)
             loss = f(xx, solution)  # + 1/2 * x @ x
             gradient = torch.autograd.grad(loss, xx)[0]
+            gradient = torch.clamp(gradient, min=-D, max=D)
             with torch.no_grad():
                 # x += delta
                 # x -= gradient * lr
@@ -134,7 +136,7 @@ if __name__ == '__main__':
 
     elif solver == 'ffo':
         # Our algorithm
-        eps_abs = eps ** 2
+        eps_abs = 1e-6 # Accuracy of the inner optimization problem and the Lagrangian optimization problem
         warm_start = True
         lamb_init = 1 / eps
         lamb = lamb_init
@@ -169,7 +171,7 @@ if __name__ == '__main__':
 
             # Checking active constraints
             h_opt_np = (A_np @ x_cp) @ y_opt - b_np @ x_cp
-            active_constraints = (np.abs(h_opt_np) < 1e-3)
+            active_constraints = (np.abs(h_opt_np) < 1e-4) * (gamma_opt > 1e-4)
 
             # print('optimal y:', y_opt)
             # print('optimal gamma:', gamma_opt)
@@ -211,6 +213,7 @@ if __name__ == '__main__':
             # Gradient and variable update
             D = 1
             gradient = torch.autograd.grad(final_lagrangian, xx)[0]
+            gradient = torch.clamp(gradient, min=-D, max=D)
             with torch.no_grad():
                 # x += delta
                 # x -= gradient * lr
@@ -230,7 +233,7 @@ if __name__ == '__main__':
 
             # Output file
             time_elapsed = time.time() - start_time
-            print(i, loss, time_elapsed, constrained_inner_problem_time, lagrangian_time)
+            print(i, np.sum(active_constraints), loss, time_elapsed, constrained_inner_problem_time, lagrangian_time)
             f_output.write('{}, {}, {}, {}, {} \n'.format(i, loss, time_elapsed, constrained_inner_problem_time, lagrangian_time))
 
     f_output.close()
