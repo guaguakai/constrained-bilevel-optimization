@@ -170,7 +170,7 @@ if __name__ == '__main__':
             gamma_opt = constraints[0].dual_value # We only have one set of constraints
 
             # Checking active constraints
-            h_opt_np = (A_np @ x_cp) @ y_opt - b_np @ x_cp
+            h_opt_np = (A_np @ x_cp) @ y_opt - b_np @ x_cp # Bilinear constraints
             active_constraints = (np.abs(h_opt_np) < 1e-4) * (gamma_opt > 1e-4)
 
             # print('optimal y:', y_opt)

@@ -178,6 +178,10 @@ if __name__ == '__main__':
             y_opt = y_cp.value
             gamma_opt = constraints[0].dual_value # We only have one set of constraints
 
+            # Checking active constraints
+            h_opt_np = A_cp @ y_opt - b_cp # Linear constraints
+            active_constraints = (np.abs(h_opt_np) < 1e-4) * (gamma_opt > 1e-4)
+
             # print('optimal y:', y_opt)
             # print('optimal gamma:', gamma_opt)
     
@@ -188,7 +192,14 @@ if __name__ == '__main__':
             g_opt_cp = 0.5 * cp.quad_form(y_opt, Q_cp) + q_cp @ y_opt
             h_cp = A_cp @ y_cp - b_cp
             h_opt_cp = A_cp @ y_opt - b_cp
-            objective = cp.Minimize( f_cp + lamb * (g_cp + gamma_opt.T @ h_cp - g_opt_cp - gamma_opt.T @ h_opt_cp) + 0.5 * lamb**2 * cp.sum_squares(cp.maximum(h_cp, 0))  )
+
+
+            h_cp = A_cp @ y_cp - b_cp
+            if sum(active_constraints) == 0:
+                objective = cp.Minimize( f_cp + lamb * (g_cp + gamma_opt.T @ h_cp - g_opt_cp - gamma_opt.T @ h_opt_cp))
+            else:
+                h_cp_active = A_cp[active_constraints] @ y_cp - b_cp[active_constraints]
+                objective = cp.Minimize( f_cp + lamb * (g_cp + gamma_opt.T @ h_cp - g_opt_cp - gamma_opt.T @ h_opt_cp) + 0.5 * lamb**2 * cp.sum_squares(h_cp_active)  )
             y_cp.value = y_opt
             problem = cp.Problem(objective, constraints)
             problem.solve(solver=cvxpy_solver, eps_abs=eps_abs, warm_start=warm_start)
@@ -202,7 +213,11 @@ if __name__ == '__main__':
             gamma_opt = torch.tensor(gamma_opt).float()
 
             # Compute the final Lagrangian and track gradient over x
-            final_lagrangian = f(xx,y_lamb_opt) + lamb * (g(xx, y_lamb_opt) + gamma_opt.T @ h(xx, y_lamb_opt) - g(xx, y_opt) - gamma_opt.T @ h(xx, y_opt)) + 0.5 * lamb**2 * torch.sum(torch.clip(h(xx, y_lamb_opt), min=0) **2)
+            if sum(active_constraints) == 0:
+                constraint_violation = 0
+            else:
+                constraint_violation = torch.norm(h(xx, y_lamb_opt)[active_constraints])
+            final_lagrangian = f(xx,y_lamb_opt) + lamb * (g(xx, y_lamb_opt) + gamma_opt.T @ h(xx, y_lamb_opt) - g(xx, y_opt) - gamma_opt.T @ h(xx, y_opt)) + 0.5 * lamb**2 * constraint_violation**2
             # final_lagrangian.backward()
             # x.grad = torch.clamp(x.grad, max=1, min=-1)
 
@@ -215,7 +230,6 @@ if __name__ == '__main__':
                 # x.grad = -delta
                 x.grad = gradient
                 grad_list.append(gradient.numpy().copy())
-                print(gradient)
             # delta = gradient * lr # torch.clamp(delta - lr * gradient, min=-D, max=D)
             optimizer.step()
             optimizer.zero_grad()

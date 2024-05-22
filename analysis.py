@@ -23,28 +23,29 @@ if __name__ == '__main__':
     grad_differences = {}
 
     eps = 0.01
-    ydim_list = [100, 200, 500] # [5, 10, 20, 50, 100, 200, 500] # , 800, 1000] # list(range(100,1000,100))
-    directory_path = 'exp1_bilinear/'
+    ydim_list = [5, 10, 20, 50, 100, 200, 500] # , 800, 1000] # list(range(100,1000,100))
+    directory_path = 'exp1/'
+    # directory_path = 'exp1_bilinear/'
     seed_list = list(set(range(1,11,1))) # - set([2,9,29]))
     for ydim in ydim_list:
         directory_name = directory_path + 'ydim{}'.format(ydim)
-        directory_name_exp3 = 'exp3_bilinear/' + 'ydim{}'.format(ydim)
+        # directory_name_exp3 = 'exp3_bilinear/' + 'ydim{}'.format(ydim)
         # Initialize the dictionary
         ffo_result[ydim], cvxpylayer_result[ydim] = [], []
 
         grad_differences[ydim] = []
 
         # Read the results
-        ffo_filename_list                 = ['ffo_eps{}_seed{}.txt'.format(1.0, seed) for seed in seed_list]
-        ffo_grad_filename_list            = ['ffo_eps{}_seed{}.pickle'.format(1.0, seed) for seed in seed_list]
+        ffo_filename_list                 = ['ffo_eps{}_seed{}.txt'.format(eps, seed) for seed in seed_list]
+        ffo_grad_filename_list            = ['ffo_eps{}_seed{}.pickle'.format(eps, seed) for seed in seed_list]
         cvxpylayer_filename_list          = ['cvxpylayer_eps{}_seed{}.txt'.format(eps, seed) for seed in seed_list]
         cvxpylayer_gradient_filename_list = ['cvxpylayer_eps{}_seed{}.pickle'.format(eps, seed) for seed in seed_list]
         for filename in ffo_filename_list:
-            df = pd.read_csv('results/' + directory_name_exp3 + '/' + filename, header=None, names=['iteration', 'loss', 'time', 'time1', 'time2'], skiprows=1)
-            ffo_result[ydim].append(df.values[:,:3])
+            df = pd.read_csv('results/' + directory_name + '/' + filename, header=None, names=['iteration', 'loss', 'time', 'time1', 'time2'], skiprows=1)
+            ffo_result[ydim].append(df.values[:,:3] - df.values[:,:3].min(axis=0))
         for filename in cvxpylayer_filename_list:
             df = pd.read_csv('results/' + directory_name + '/' + filename)
-            cvxpylayer_result[ydim].append(df.values[:,:3])
+            cvxpylayer_result[ydim].append(df.values[:,:3] - df.values[:,:3].min(axis=0))
 
         ffo_result_mean[ydim] = np.mean(ffo_result[ydim], axis=0)
         ffo_result_std[ydim] = np.std(ffo_result[ydim], axis=0)
@@ -68,9 +69,13 @@ if __name__ == '__main__':
         x_list = list(range(1, ffo_result_mean[ydim].shape[0] + 1))
         
         # Create a secondary y-axis
-        sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='ffo', ax=ax1, linewidth=2.5, zorder=10)
+        sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='FFO', ax=ax1, linewidth=2.5, zorder=10)
+        plt.fill_between(x_list, ffo_result_mean[ydim][:,1] - ffo_result_std[ydim][:,1], ffo_result_mean[ydim][:,1] + ffo_result_std[ydim][:,1], alpha=0.3, zorder=4)
+
         sns.lineplot(x=x_list, y=cvxpylayer_result_mean[ydim][:,1], label='cvxpylayer', ax=ax1, linewidth=2.5, zorder=5)
-        ax1.set_ylabel('Loss', fontsize=28)
+        plt.fill_between(x_list, cvxpylayer_result_mean[ydim][:,1] - cvxpylayer_result_std[ydim][:,1], cvxpylayer_result_mean[ydim][:,1] + cvxpylayer_result_std[ydim][:,1], alpha=0.3, zorder=4)
+
+        ax1.set_ylabel('Optimality gap', fontsize=28)
         ax1.legend(loc='upper right', fontsize=28, frameon=False)
 
         ax2 = ax1.twinx()
@@ -84,6 +89,7 @@ if __name__ == '__main__':
 
         y1_min, y1_max = ax1.get_ylim()
         y2_min, y2_max = ax2.get_ylim()
+        ax1.set_ylim(bottom=0)
         ax2.set_ylim(bottom=0, top=1)
 
         ax1.set_zorder(ax2.get_zorder() + 1)
@@ -108,7 +114,8 @@ if __name__ == '__main__':
 
     eps = 0.01
     ydim_list = list(range(100,1100,100))
-    directory_path = 'exp2_bilinear/'
+    directory_path = 'exp2/'
+    # directory_path = 'exp2_bilinear/'
     seed_list = list(set(range(1,11,1))) #- set([1, 10,11,12,13,14,18,19,20]))
     for ydim in ydim_list:
         directory_name = directory_path + 'ydim{}'.format(ydim)
@@ -132,7 +139,9 @@ if __name__ == '__main__':
                 print(ydim, filename)
 
         ffo_result_mean[ydim] = np.mean(ffo_result[ydim], axis=0)
+        ffo_result_std[ydim] = np.std(ffo_result[ydim], axis=0)
         cvxpylayer_result_mean[ydim] = np.mean(cvxpylayer_result[ydim], axis=0)
+        cvxpylayer_result_std[ydim] = np.std(cvxpylayer_result[ydim], axis=0)
 
     # Plot the time results
     time_results = {'ffo': [], 'cvxpylayer': [], 'ydim': []}
@@ -144,6 +153,8 @@ if __name__ == '__main__':
     time_results = pd.DataFrame(time_results)
     plt.figure(figsize=(10, 6))
     g = sns.barplot(x='ydim', y='value', hue='variable', data=pd.melt(time_results, ['ydim']))
+    # plt.errorbar(time_results['ydim'], time_results['ffo'], yerr=ffo_result_std[ydim][:,2], fmt='none', color='black', capsize=5)
+    # plt.errorbar(time_results['ydim'], time_results['cvxpylayer'], yerr=cvxpylayer_result_std[ydim][:,2], fmt='none', color='black', capsize=5)
     g.set_xlabel('Inner level dimension', fontsize=28)
     g.set_ylabel('Time (s)', fontsize=28)
 
@@ -153,7 +164,7 @@ if __name__ == '__main__':
 
     # Adjust the legend
     handles, labels = g.get_legend_handles_labels()
-    labels = [label.replace('variable', '') for label in labels]  # Remove "variable" from legend labels
+    labels = ['FFO', 'cvxpylayer']  # Remove "variable" from legend labels
     g.legend(handles=handles, labels=labels, title='', fontsize=28, frameon=False)
     
     plt.tight_layout()
@@ -170,8 +181,9 @@ if __name__ == '__main__':
 
     eps = 0.01
     ydim_list = [100, 200, 500] # list(range(100,1000,100))
-    directory_path = 'exp3_bilinear/'
-    seed_list = list(range(1,11,1))
+    directory_path = 'exp3/'
+    # directory_path = 'exp3_bilinear/'
+    seed_list = list(range(1,6,1))
     for ydim in ydim_list:
         # Initialize the dictionary
         ffo_result[ydim], cvxpylayer_result[ydim] = {}, {}
@@ -183,15 +195,15 @@ if __name__ == '__main__':
         data_type = 'gradient_error'
         fig, ax1 = plt.subplots(figsize=(10, 6))
 
-        # Some random seed didn't finish
-        # if ydim == 100:
-        #     seed_list = [1,2,3,4,5]
-        # elif ydim == 200:
-        #     seed_list = [1,3,4,5]
-        # elif ydim == 500:
-        #     seed_list = [2,3,4,5]
-        # else:
-        #     seed_list = [1,2,3,4,5]
+        # Some random seed didn't finish (for linear case)
+        if ydim == 100:
+            seed_list = [1,2,3,4,5]
+        elif ydim == 200:
+            seed_list = [1,3,4,5]
+        elif ydim == 500:
+            seed_list = [2,3,4,5]
+        else:
+            seed_list = [1,2,3,4,5]
 
         for eps in [0.0001, 0.001, 0.01, 0.1, 1.0]:
             ffo_result[ydim][eps], cvxpylayer_result[ydim][eps] = [], []
@@ -206,19 +218,22 @@ if __name__ == '__main__':
             cvxpylayer_gradient_filename_list = ['cvxpylayer_eps{}_seed{}.pickle'.format(eps, seed) for seed in seed_list]
             for filename in ffo_filename_list:
                 df = pd.read_csv('results/' + directory_name + '/' + filename, header=None, names=['iteration', 'loss', 'time', 'time1', 'time2'], skiprows=1)
-                ffo_result[ydim][eps].append(df.values[:,:3])
+                ffo_result[ydim][eps].append(df.values[:,:3] - df.values[:,:3].min(axis=0))
             # for filename in cvxpylayer_filename_list:
             #     df = pd.read_csv('results/' + directory_name + '/' + filename)
             #     cvxpylayer_result[ydim][eps].append(df.values[:,:3])
 
             ffo_result_mean[ydim][eps] = np.mean(ffo_result[ydim][eps], axis=0)
+            ffo_result_std[ydim][eps] = np.std(ffo_result[ydim][eps], axis=0)
             cvxpylayer_result_mean[ydim][eps] = np.mean(cvxpylayer_result[ydim][eps], axis=0)
+            cvxpylayer_result_std[ydim][eps] = np.std(cvxpylayer_result[ydim][eps], axis=0)
 
             x_list = list(range(1, ffo_result_mean[ydim][eps].shape[0] + 1))
             # Create a secondary y-axis
-            sns.lineplot(x=x_list, y=ffo_result_mean[ydim][eps][:,1], label='ffo ' + r'$\alpha^2$' + '={}'.format(eps), ax=ax1, linewidth=2.5)
+            sns.lineplot(x=x_list, y=ffo_result_mean[ydim][eps][:,1], label='FFO ' + r'$\alpha^2$' + '={}'.format(eps), ax=ax1, linewidth=2.5)
+            plt.fill_between(x_list, ffo_result_mean[ydim][eps][:,1] - ffo_result_std[ydim][eps][:,1], ffo_result_mean[ydim][eps][:,1] + ffo_result_std[ydim][eps][:,1], alpha=0.3)
 
-        ax1.set_ylabel('Loss', fontsize=28)
+        ax1.set_ylabel('Optimality gap', fontsize=28)
         ax1.legend(loc='upper right', fontsize=28, frameon=False)
 
         ax1.set_xlabel('Iteration', fontsize=28)
