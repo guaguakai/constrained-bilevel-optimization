@@ -16,39 +16,46 @@ if __name__ == '__main__':
     file_type = args.file_type
     # ================================== EXP 1 ===================================
     # Convergence analysis
-    ffo_result, cvxpylayer_result = {}, {}
-    ffo_result_mean, cvxpylayer_result_mean = {}, {}
-    ffo_result_std, cvxpylayer_result_std = {}, {}
+    ffo_result, ffoc_result, cvxpylayer_result = {}, {}, {}
+    ffo_result_mean, ffoc_result_mean, cvxpylayer_result_mean = {}, {}, {}
+    ffo_result_std, ffoc_result_std, cvxpylayer_result_std = {}, {}, {}
 
     grad_differences = {}
 
     eps = 0.01
     ydim_list = [5, 10, 20, 50, 100, 200, 500] # , 800, 1000] # list(range(100,1000,100))
-    # directory_path = 'exp1/'
-    directory_path = 'exp1_bilinear/'
+    directory_path = 'exp1/'
+    # directory_path = 'exp1_bilinear/'
     seed_list = list(set(range(1,11,1))) # - set([2,9,29]))
     for ydim in ydim_list:
         directory_name = directory_path + 'ydim{}'.format(ydim)
         # directory_name_exp3 = 'exp3_bilinear/' + 'ydim{}'.format(ydim)
         # Initialize the dictionary
-        ffo_result[ydim], cvxpylayer_result[ydim] = [], []
+        ffo_result[ydim], ffoc_result[ydim], cvxpylayer_result[ydim] = [], [], []
 
         grad_differences[ydim] = []
 
         # Read the results
         ffo_filename_list                 = ['ffo_eps{}_seed{}.txt'.format(eps, seed) for seed in seed_list]
         ffo_grad_filename_list            = ['ffo_eps{}_seed{}.pickle'.format(eps, seed) for seed in seed_list]
+        ffoc_filename_list                = ['ffo_complex_eps{}_seed{}.txt'.format(eps, seed) for seed in seed_list]
+        ffoc_grad_filename_list           = ['ffo_complex_eps{}_seed{}.pickle'.format(eps, seed) for seed in seed_list]
         cvxpylayer_filename_list          = ['cvxpylayer_eps{}_seed{}.txt'.format(eps, seed) for seed in seed_list]
         cvxpylayer_gradient_filename_list = ['cvxpylayer_eps{}_seed{}.pickle'.format(eps, seed) for seed in seed_list]
         for filename in ffo_filename_list:
             df = pd.read_csv('results/' + directory_name + '/' + filename, header=None, names=['iteration', 'loss', 'time', 'time1', 'time2'], skiprows=1)
             ffo_result[ydim].append(df.values[:,:3] - df.values[:,:3].min(axis=0))
+        for filename in ffoc_filename_list:
+            df = pd.read_csv('results/' + directory_name + '/' + filename, header=None, names=['iteration', 'loss', 'time', 'time1', 'time2'], skiprows=1)
+            ffoc_result[ydim].append(df.values[:,:3] - df.values[:,:3].min(axis=0))
         for filename in cvxpylayer_filename_list:
             df = pd.read_csv('results/' + directory_name + '/' + filename)
             cvxpylayer_result[ydim].append(df.values[:,:3] - df.values[:,:3].min(axis=0))
 
         ffo_result_mean[ydim] = np.mean(ffo_result[ydim], axis=0)
         ffo_result_std[ydim] = np.std(ffo_result[ydim], axis=0)
+        ffoc_result_mean[ydim] = np.mean(ffoc_result[ydim], axis=0)
+        ffoc_result_std[ydim] = np.std(ffoc_result[ydim], axis=0)
         cvxpylayer_result_mean[ydim] = np.mean(cvxpylayer_result[ydim], axis=0)
         cvxpylayer_result_std[ydim] = np.std(cvxpylayer_result[ydim], axis=0)
 
@@ -71,6 +78,9 @@ if __name__ == '__main__':
         # Create a secondary y-axis
         sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='FFO', ax=ax1, linewidth=2.5, zorder=10)
         plt.fill_between(x_list, ffo_result_mean[ydim][:,1] - ffo_result_std[ydim][:,1], ffo_result_mean[ydim][:,1] + ffo_result_std[ydim][:,1], alpha=0.3, zorder=4)
+
+        sns.lineplot(x=x_list, y=ffoc_result_mean[ydim][:,1], label='FFO complex', ax=ax1, linewidth=2.5, zorder=6)
+        plt.fill_between(x_list, ffoc_result_mean[ydim][:,1] - ffoc_result_std[ydim][:,1], ffoc_result_mean[ydim][:,1] + ffoc_result_std[ydim][:,1], alpha=0.3, zorder=4)
 
         sns.lineplot(x=x_list, y=cvxpylayer_result_mean[ydim][:,1], label='cvxpylayer', ax=ax1, linewidth=2.5, zorder=5)
         plt.fill_between(x_list, cvxpylayer_result_mean[ydim][:,1] - cvxpylayer_result_std[ydim][:,1], cvxpylayer_result_mean[ydim][:,1] + cvxpylayer_result_std[ydim][:,1], alpha=0.3, zorder=4)
@@ -114,8 +124,8 @@ if __name__ == '__main__':
 
     eps = 0.01
     ydim_list = list(range(100,1100,100))
-    # directory_path = 'exp2/'
-    directory_path = 'exp2_bilinear/'
+    directory_path = 'exp2/'
+    # directory_path = 'exp2_bilinear/'
     seed_list = list(set(range(1,11,1))) #- set([1, 10,11,12,13,14,18,19,20]))
     for ydim in ydim_list:
         directory_name = directory_path + 'ydim{}'.format(ydim)
@@ -181,8 +191,8 @@ if __name__ == '__main__':
 
     eps = 0.01
     ydim_list = [100, 200, 500] # list(range(100,1000,100))
-    # directory_path = 'exp3/'
-    directory_path = 'exp3_bilinear/'
+    directory_path = 'exp3/'
+    # directory_path = 'exp3_bilinear/'
     seed_list = list(range(1,11,1))
     for ydim in ydim_list:
         # Initialize the dictionary
