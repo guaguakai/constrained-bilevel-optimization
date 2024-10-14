@@ -17,7 +17,7 @@ from cvxpylayers.torch import CvxpyLayer
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--solver', default = 'ffo', choices=['ffo', 'BR', 'cvxpylayer'])
+    parser.add_argument('--solver', default = 'ffo', choices=['ffo', 'ffo_complex', 'BR', 'cvxpylayer'])
     parser.add_argument('--lr', default = 1e-3, type = float)
     parser.add_argument('--xdim', default = 100, type = int)
     parser.add_argument('--ydim', default = 500, type = int)
@@ -134,9 +134,9 @@ if __name__ == '__main__':
             print(i, loss.item(), time_elapsed)
             f_output.write('{}, {}, {} \n'.format(i, loss, time_elapsed))
 
-    elif solver == 'ffo':
+    elif solver == 'ffo' or solver == 'ffo_complex':
         # Our algorithm
-        eps_abs = 1e-6 # Accuracy of the inner optimization problem and the Lagrangian optimization problem
+        eps_abs = eps ** 2 # 1e-6 # Accuracy of the inner optimization problem and the Lagrangian optimization problem
         warm_start = True
         lamb_init = 1 / eps
         lamb = lamb_init
@@ -145,9 +145,13 @@ if __name__ == '__main__':
         for i in range(args.n_iterations):
             start_time = time.time()
             # Perturbed x to get xx
-            # s = torch.rand(x_dim)
-            s = torch.normal(torch.zeros(x_dim), torch.ones(x_dim)) * delta
-            xx = x + s
+            if solver == 'ffo':
+                s = torch.normal(torch.zeros(x_dim), torch.ones(x_dim)) * delta
+                xx = x + s
+            elif solver == 'ffo_complex':
+                s = torch.rand(1)[0]
+                xx = x + s * delta
+
             A_xx = A @ xx
             b_xx = b @ xx
 
@@ -211,15 +215,17 @@ if __name__ == '__main__':
             # x.grad = torch.clamp(x.grad, max=1, min=-1)
 
             # Gradient and variable update
-            D = 1
+            D = eps**3
             gradient = torch.autograd.grad(final_lagrangian, xx)[0]
             gradient = torch.clamp(gradient, min=-D, max=D)
             with torch.no_grad():
-                # x += delta
-                # x -= gradient * lr
-                # x.grad = -delta
-                x.grad = gradient
-                grad_list.append(gradient.numpy().copy())
+                if solver == 'ffo':
+                    x.grad = gradient
+                    grad_list.append(gradient.numpy().copy())
+                elif solver == 'ffo_complex':
+                    delta = torch.clip(delta - lr * gradient, min=-D, max=D)
+                    x.grad = -delta
+
                 # print(gradient)
             # delta = gradient * lr # torch.clamp(delta - lr * gradient, min=-D, max=D)
             optimizer.step()

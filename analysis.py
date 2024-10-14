@@ -9,11 +9,11 @@ import argparse
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Analysis of the results')
-    parser.add_argument('--file_type', type=str, default='pdf', help='File type of the figures')
+    parser.add_argument('--format', type=str, default='pdf', help='File type of the figures')
 
     args = parser.parse_args()
 
-    file_type = args.file_type
+    file_type = args.format
     # ================================== EXP 1 ===================================
     # Convergence analysis
     ffo_result, ffoc_result, cvxpylayer_result = {}, {}, {}
@@ -76,11 +76,11 @@ if __name__ == '__main__':
         x_list = list(range(1, ffo_result_mean[ydim].shape[0] + 1))
         
         # Create a secondary y-axis
-        sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='FFO', ax=ax1, linewidth=2.5, zorder=10)
-        plt.fill_between(x_list, ffo_result_mean[ydim][:,1] - ffo_result_std[ydim][:,1], ffo_result_mean[ydim][:,1] + ffo_result_std[ydim][:,1], alpha=0.3, zorder=4)
-
-        sns.lineplot(x=x_list, y=ffoc_result_mean[ydim][:,1], label='FFO complex', ax=ax1, linewidth=2.5, zorder=6)
+        sns.lineplot(x=x_list, y=ffoc_result_mean[ydim][:,1], label='C-F2BA (Algorithm 2)', ax=ax1, linewidth=2.5, zorder=6)
         plt.fill_between(x_list, ffoc_result_mean[ydim][:,1] - ffoc_result_std[ydim][:,1], ffoc_result_mean[ydim][:,1] + ffoc_result_std[ydim][:,1], alpha=0.3, zorder=4)
+        
+        sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='C-F2BA (Algorithm 3)', ax=ax1, linewidth=2.5, zorder=10)
+        plt.fill_between(x_list, ffo_result_mean[ydim][:,1] - ffo_result_std[ydim][:,1], ffo_result_mean[ydim][:,1] + ffo_result_std[ydim][:,1], alpha=0.3, zorder=4)
 
         sns.lineplot(x=x_list, y=cvxpylayer_result_mean[ydim][:,1], label='cvxpylayer', ax=ax1, linewidth=2.5, zorder=5)
         plt.fill_between(x_list, cvxpylayer_result_mean[ydim][:,1] - cvxpylayer_result_std[ydim][:,1], cvxpylayer_result_mean[ydim][:,1] + cvxpylayer_result_std[ydim][:,1], alpha=0.3, zorder=4)
@@ -174,7 +174,7 @@ if __name__ == '__main__':
 
     # Adjust the legend
     handles, labels = g.get_legend_handles_labels()
-    labels = ['FFO', 'cvxpylayer']  # Remove "variable" from legend labels
+    labels = ['C-F2BA', 'cvxpylayer']  # Remove "variable" from legend labels
     g.legend(handles=handles, labels=labels, title='', fontsize=28, frameon=False)
     
     plt.tight_layout()
@@ -240,7 +240,7 @@ if __name__ == '__main__':
 
             x_list = list(range(1, ffo_result_mean[ydim][eps].shape[0] + 1))
             # Create a secondary y-axis
-            sns.lineplot(x=x_list, y=ffo_result_mean[ydim][eps][:,1], label='FFO ' + r'$\alpha^2$' + '={}'.format(eps), ax=ax1, linewidth=2.5)
+            sns.lineplot(x=x_list, y=ffo_result_mean[ydim][eps][:,1], label='C-F2BA ' + r'$\alpha^2$' + '={}'.format(eps), ax=ax1, linewidth=2.5)
             plt.fill_between(x_list, ffo_result_mean[ydim][eps][:,1] - ffo_result_std[ydim][eps][:,1], ffo_result_mean[ydim][eps][:,1] + ffo_result_std[ydim][eps][:,1], alpha=0.3)
 
         ax1.set_ylabel('Optimality gap', fontsize=28)
