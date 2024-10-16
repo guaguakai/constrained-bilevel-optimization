@@ -24,8 +24,8 @@ if __name__ == '__main__':
 
     eps = 0.01
     ydim_list = [5, 10, 20, 50, 100, 200, 500] # , 800, 1000] # list(range(100,1000,100))
-    directory_path = 'exp1/'
-    # directory_path = 'exp1_bilinear/'
+    # directory_path = 'exp1/'
+    directory_path = 'exp1_bilinear/'
     seed_list = list(set(range(1,11,1))) # - set([2,9,29]))
     for ydim in ydim_list:
         directory_name = directory_path + 'ydim{}'.format(ydim)
