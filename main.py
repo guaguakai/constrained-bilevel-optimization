@@ -55,7 +55,7 @@ if __name__ == '__main__':
     Q = Q + reg * torch.eye(y_dim)  # PSD matrix, normalize the condition number of Q
     P = torch.rand(x_dim, y_dim)
     A = torch.rand(n_constraints, x_dim) # A x + B y - b \leq 0
-    B = torch.rand(n_constraints, y_dim) # A x + B y- b \leq 0
+    B = torch.rand(n_constraints, y_dim) # A x + B y - b \leq 0
     b = torch.rand(n_constraints)
 
     c_cp = c.numpy()
@@ -237,7 +237,10 @@ if __name__ == '__main__':
                     x.grad = gradient
                     grad_list.append(gradient.numpy().copy())
                 elif solver == 'ffo_complex':
-                    delta = torch.clip(delta - lr * gradient, min=-D, max=D)
+                    # delta = torch.clip(delta - lr * gradient, min=-D, max=D)
+                    delta = delta - lr * gradient
+                    if torch.norm(delta) > D: # Norm clipping
+                        delta = delta / torch.norm(delta) * D
                     x.grad = -delta
 
             # delta = gradient * lr # torch.clamp(delta - lr * gradient, min=-D, max=D)

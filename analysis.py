@@ -79,13 +79,13 @@ if __name__ == '__main__':
         sns.lineplot(x=x_list, y=cvxpylayer_result_mean[ydim][:,1], label='Diff. optimization', ax=ax1, linewidth=2.5, zorder=5)
         plt.fill_between(x_list, cvxpylayer_result_mean[ydim][:,1] - cvxpylayer_result_std[ydim][:,1], cvxpylayer_result_mean[ydim][:,1] + cvxpylayer_result_std[ydim][:,1], alpha=0.3, zorder=4)
 
-        sns.lineplot(x=x_list, y=ffoc_result_mean[ydim][:,1], label='C-F2BA', ax=ax1, linewidth=2.5, zorder=6)
+        # sns.lineplot(x=x_list, y=ffoc_result_mean[ydim][:,1], label='C-F2BA', ax=ax1, linewidth=2.5, zorder=6)
         # sns.lineplot(x=x_list, y=ffoc_result_mean[ydim][:,1], label='C-F2BA (better)', ax=ax1, linewidth=2.5, zorder=6)
-        plt.fill_between(x_list, ffoc_result_mean[ydim][:,1] - ffoc_result_std[ydim][:,1], ffoc_result_mean[ydim][:,1] + ffoc_result_std[ydim][:,1], alpha=0.3, zorder=4)
+        # plt.fill_between(x_list, ffoc_result_mean[ydim][:,1] - ffoc_result_std[ydim][:,1], ffoc_result_mean[ydim][:,1] + ffoc_result_std[ydim][:,1], alpha=0.3, zorder=4)
         
         # sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='C-F2BA', ax=ax1, linewidth=2.5, zorder=10)
-        # sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='C-F2BA (friendly)', ax=ax1, linewidth=2.5, zorder=10)
-        # plt.fill_between(x_list, ffo_result_mean[ydim][:,1] - ffo_result_std[ydim][:,1], ffo_result_mean[ydim][:,1] + ffo_result_std[ydim][:,1], alpha=0.3, zorder=4)
+        sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='C-F2BA (friendly)', ax=ax1, linewidth=2.5, zorder=10)
+        plt.fill_between(x_list, ffo_result_mean[ydim][:,1] - ffo_result_std[ydim][:,1], ffo_result_mean[ydim][:,1] + ffo_result_std[ydim][:,1], alpha=0.3, zorder=4)
 
         # sns.lineplot(x=x_list, y=cvxpylayer_result_mean[ydim][:,1], label='Diff. optimization', ax=ax1, linewidth=2.5, zorder=5)
         # plt.fill_between(x_list, cvxpylayer_result_mean[ydim][:,1] - cvxpylayer_result_std[ydim][:,1], cvxpylayer_result_mean[ydim][:,1] + cvxpylayer_result_std[ydim][:,1], alpha=0.3, zorder=4)
@@ -106,8 +106,8 @@ if __name__ == '__main__':
 
         y1_min, y1_max = ax1.get_ylim()
         y2_min, y2_max = ax2.get_ylim()
-        ax1.set_ylim(bottom=0, top=2)
-        ax2.set_ylim(bottom=0, top=2)
+        ax1.set_ylim(bottom=0) #, top=2)
+        ax2.set_ylim(bottom=0) #, top=2)
 
         ax1.set_zorder(ax2.get_zorder() + 1)
         ax1.patch.set_visible(False)
