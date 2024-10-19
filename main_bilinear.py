@@ -223,7 +223,10 @@ if __name__ == '__main__':
                     x.grad = gradient
                     grad_list.append(gradient.numpy().copy())
                 elif solver == 'ffo_complex':
-                    delta = torch.clip(delta - lr * gradient, min=-D, max=D)
+                    # delta = torch.clip(delta - lr * gradient, min=-D, max=D)
+                    delta = delta - lr * gradient
+                    if torch.norm(delta) > D: # Norm clipping
+                        delta = delta / torch.norm(delta) * D
                     x.grad = -delta
 
                 # print(gradient)
