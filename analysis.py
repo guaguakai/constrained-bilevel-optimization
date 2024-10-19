@@ -24,8 +24,8 @@ if __name__ == '__main__':
 
     eps = 0.01
     ydim_list = [5, 10, 20, 50, 100, 200, 500] # , 800, 1000] # list(range(100,1000,100))
-    # directory_path = 'exp1/'
-    directory_path = 'exp1_bilinear/'
+    directory_path = 'exp1/'
+    # directory_path = 'exp1_bilinear/'
     seed_list = list(set(range(1,11,1))) # - set([2,9,29]))
     for ydim in ydim_list:
         directory_name = directory_path + 'ydim{}'.format(ydim)
@@ -76,31 +76,38 @@ if __name__ == '__main__':
         x_list = list(range(1, ffo_result_mean[ydim].shape[0] + 1))
         
         # Create a secondary y-axis
-        sns.lineplot(x=x_list, y=ffoc_result_mean[ydim][:,1], label='C-F2BA (Algorithm 2)', ax=ax1, linewidth=2.5, zorder=6)
+        sns.lineplot(x=x_list, y=cvxpylayer_result_mean[ydim][:,1], label='Diff. optimization', ax=ax1, linewidth=2.5, zorder=5)
+        plt.fill_between(x_list, cvxpylayer_result_mean[ydim][:,1] - cvxpylayer_result_std[ydim][:,1], cvxpylayer_result_mean[ydim][:,1] + cvxpylayer_result_std[ydim][:,1], alpha=0.3, zorder=4)
+
+        sns.lineplot(x=x_list, y=ffoc_result_mean[ydim][:,1], label='C-F2BA', ax=ax1, linewidth=2.5, zorder=6)
+        # sns.lineplot(x=x_list, y=ffoc_result_mean[ydim][:,1], label='C-F2BA (better)', ax=ax1, linewidth=2.5, zorder=6)
         plt.fill_between(x_list, ffoc_result_mean[ydim][:,1] - ffoc_result_std[ydim][:,1], ffoc_result_mean[ydim][:,1] + ffoc_result_std[ydim][:,1], alpha=0.3, zorder=4)
         
-        sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='C-F2BA (Algorithm 3)', ax=ax1, linewidth=2.5, zorder=10)
-        plt.fill_between(x_list, ffo_result_mean[ydim][:,1] - ffo_result_std[ydim][:,1], ffo_result_mean[ydim][:,1] + ffo_result_std[ydim][:,1], alpha=0.3, zorder=4)
+        # sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='C-F2BA', ax=ax1, linewidth=2.5, zorder=10)
+        # sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='C-F2BA (friendly)', ax=ax1, linewidth=2.5, zorder=10)
+        # plt.fill_between(x_list, ffo_result_mean[ydim][:,1] - ffo_result_std[ydim][:,1], ffo_result_mean[ydim][:,1] + ffo_result_std[ydim][:,1], alpha=0.3, zorder=4)
 
-        sns.lineplot(x=x_list, y=cvxpylayer_result_mean[ydim][:,1], label='cvxpylayer', ax=ax1, linewidth=2.5, zorder=5)
-        plt.fill_between(x_list, cvxpylayer_result_mean[ydim][:,1] - cvxpylayer_result_std[ydim][:,1], cvxpylayer_result_mean[ydim][:,1] + cvxpylayer_result_std[ydim][:,1], alpha=0.3, zorder=4)
+        # sns.lineplot(x=x_list, y=cvxpylayer_result_mean[ydim][:,1], label='Diff. optimization', ax=ax1, linewidth=2.5, zorder=5)
+        # plt.fill_between(x_list, cvxpylayer_result_mean[ydim][:,1] - cvxpylayer_result_std[ydim][:,1], cvxpylayer_result_mean[ydim][:,1] + cvxpylayer_result_std[ydim][:,1], alpha=0.3, zorder=4)
 
         ax1.set_ylabel('Optimality gap', fontsize=28)
         ax1.legend(loc='upper right', fontsize=28, frameon=False)
 
         ax2 = ax1.twinx()
-        sns.barplot(x=x_list, y=grad_differences[ydim], label='grad_diff', ax=ax2, zorder=3)
-        ax2.set_ylabel('Gradient error', fontsize=28)
+        # sns.barplot(x=x_list, y=grad_differences[ydim], label='grad_diff', ax=ax2, zorder=3)
+        # ax2.set_ylabel('Gradient error', fontsize=28)
 
         ax1.set_xlabel('Iteration', fontsize=28)
-        x_ticks = list(range(0, ffo_result_mean[ydim].shape[0], 50))
+        x_ticks = list(range(0, ffo_result_mean[ydim].shape[0], 100))
         ax1.set_xticks(x_ticks)
+        ax1.tick_params(axis='both', which='major', labelsize=24)
+        ax1.set_xlim(xmin=0, xmax=1000)
         ax1.set_xticklabels(x_ticks)
 
         y1_min, y1_max = ax1.get_ylim()
         y2_min, y2_max = ax2.get_ylim()
-        ax1.set_ylim(bottom=0)
-        ax2.set_ylim(bottom=0, top=1)
+        ax1.set_ylim(bottom=0, top=2)
+        ax2.set_ylim(bottom=0, top=2)
 
         ax1.set_zorder(ax2.get_zorder() + 1)
         ax1.patch.set_visible(False)
@@ -154,13 +161,14 @@ if __name__ == '__main__':
         cvxpylayer_result_std[ydim] = np.std(cvxpylayer_result[ydim], axis=0)
 
     # Plot the time results
-    time_results = {'ffo': [], 'cvxpylayer': [], 'ydim': []}
+    time_results = {'cvxpylayer': [], 'ffo': [], 'ydim': []}
     for ydim in ffo_result.keys():
         time_results['ffo'].append(np.mean(ffo_result_mean[ydim][:,2]))
         time_results['cvxpylayer'].append(np.mean(cvxpylayer_result_mean[ydim][:,2]))
         time_results['ydim'].append(ydim)
 
     time_results = pd.DataFrame(time_results)
+    time_results = time_results[['cvxpylayer', 'ffo', 'ydim']]
     plt.figure(figsize=(10, 6))
     g = sns.barplot(x='ydim', y='value', hue='variable', data=pd.melt(time_results, ['ydim']))
     # plt.errorbar(time_results['ydim'], time_results['ffo'], yerr=ffo_result_std[ydim][:,2], fmt='none', color='black', capsize=5)
@@ -169,12 +177,14 @@ if __name__ == '__main__':
     g.set_ylabel('Time (s)', fontsize=28)
 
     # Set tick label size
-    plt.xticks(fontsize=10)
-    plt.yticks(fontsize=10)
+    plt.tick_params(axis='both', which='major', labelsize=24)
+    # plt.xticks(fontsize=10)
+    # plt.yticks(fontsize=10)
 
     # Adjust the legend
     handles, labels = g.get_legend_handles_labels()
-    labels = ['C-F2BA', 'cvxpylayer']  # Remove "variable" from legend labels
+    labels = ['Diff. optimization', 'C-F2BA']  # Remove "variable" from legend labels
+    # labels = ['C-F2BA', 'cvxpylayer']  # Remove "variable" from legend labels
     g.legend(handles=handles, labels=labels, title='', fontsize=28, frameon=False)
     
     plt.tight_layout()

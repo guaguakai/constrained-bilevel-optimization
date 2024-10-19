@@ -54,13 +54,15 @@ if __name__ == '__main__':
     Q = L.t() @ L
     Q = Q + reg * torch.eye(y_dim)  # PSD matrix, normalize the condition number of Q
     P = torch.rand(x_dim, y_dim)
-    A = torch.rand(n_constraints, y_dim) # A y - b \leq 0
+    A = torch.rand(n_constraints, x_dim) # A x + B y - b \leq 0
+    B = torch.rand(n_constraints, y_dim) # A x + B y- b \leq 0
     b = torch.rand(n_constraints)
 
     c_cp = c.numpy()
     Q_cp = Q.numpy()
     P_cp = P.numpy()
     A_cp = A.numpy()
+    B_cp = B.numpy()
     b_cp = b.numpy()
 
     print('Verifying if the random samples are consistent...')
@@ -68,6 +70,7 @@ if __name__ == '__main__':
     print('Q average: {}'.format(np.mean(Q_cp)))
     print('P average: {}'.format(np.mean(P_cp)))
     print('A average: {}'.format(np.mean(A_cp)))
+    print('B average: {}'.format(np.mean(B_cp)))
     print('b average: {}'.format(np.mean(b_cp)))
 
     cvxpy_solver = cp.SCS
@@ -75,7 +78,7 @@ if __name__ == '__main__':
     # Define functions (pytorch versions)
     f = lambda x,y: c @ y + 0.01 * torch.norm(x)**2 + 0.01 * torch.norm(y)**2
     g = lambda x,y: 1/2 * y.t() @ Q @ y + x.t() @ P @ y
-    h = lambda x,y: A @ y - b 
+    h = lambda x,y: A @ x + B @ y - b 
 
     # Compute gradient using pytorch
     x = torch.rand(x_dim, requires_grad=True) # random initialization
@@ -105,7 +108,7 @@ if __name__ == '__main__':
             y_cp = cp.Variable(y_dim)
             q_cp = x_cp.T @ P_cp
             objective = cp.Minimize(0.5 * cp.quad_form(y_cp, Q_cp) + q_cp @ y_cp)
-            constraints = [A @ y_cp - b <= 0]
+            constraints = [A @ x_cp + B @ y_cp - b <= 0]
             problem = cp.Problem(objective, constraints)
             cvxpylayer = CvxpyLayer(problem, parameters=[x_cp], variables=[y_cp])
     
@@ -132,7 +135,7 @@ if __name__ == '__main__':
             y_cp = cp.Variable(y_dim)
             q_cp = x_cp.T @ P_cp
             objective = cp.Minimize(0.5 * cp.quad_form(y_cp, Q_cp) + q_cp @ y_cp)
-            constraints = [A @ y_cp - b <= 0]
+            constraints = [A @ x_cp + B @ y_cp - b <= 0]
             problem = cp.Problem(objective, constraints)
             problem.solve()
     
@@ -168,7 +171,7 @@ if __name__ == '__main__':
             y_cp = cp.Variable(y_dim)
             q_cp = x_cp.T @ P_cp
             objective = cp.Minimize(0.5 * cp.quad_form(y_cp, Q_cp) + q_cp @ y_cp)
-            constraints = [A_cp @ y_cp - b_cp <= 0]
+            constraints = [A_cp @ x_cp + B_cp @ y_cp - b_cp <= 0]
             if y_lamb_opt == None:
                 y_cp.value = y_lamb_opt
 
@@ -178,11 +181,12 @@ if __name__ == '__main__':
             constrained_inner_problem_time = time.time() - start_time
             mid_time = time.time()
 
+            x_opt = x_cp
             y_opt = y_cp.value
             gamma_opt = constraints[0].dual_value # We only have one set of constraints
 
             # Checking active constraints
-            h_opt_np = A_cp @ y_opt - b_cp # Linear constraints
+            h_opt_np = A_cp @ x_opt + B_cp @ y_opt - b_cp # Linear constraints
             active_constraints = (np.abs(h_opt_np) < 1e-4) * (gamma_opt > 1e-4)
 
             # print('optimal y:', y_opt)
@@ -193,15 +197,15 @@ if __name__ == '__main__':
             f_cp = c_cp.T @ y_cp + 0.01 * cp.sum_squares(x_cp) + 0.01 * cp.sum_squares(y_cp)
             g_cp = 0.5 * cp.quad_form(y_cp, Q_cp) + q_cp @ y_cp
             g_opt_cp = 0.5 * cp.quad_form(y_opt, Q_cp) + q_cp @ y_opt
-            h_cp = A_cp @ y_cp - b_cp
-            h_opt_cp = A_cp @ y_opt - b_cp
+            h_cp = A_cp @ x_cp + B_cp @ y_cp - b_cp
+            h_opt_cp = A_cp @ x_opt + B_cp @ y_opt - b_cp
 
 
-            h_cp = A_cp @ y_cp - b_cp
+            h_cp = A_cp @ x_cp + B_cp @ y_cp - b_cp
             if sum(active_constraints) == 0:
                 objective = cp.Minimize( f_cp + lamb * (g_cp + gamma_opt.T @ h_cp - g_opt_cp - gamma_opt.T @ h_opt_cp))
             else:
-                h_cp_active = A_cp[active_constraints] @ y_cp - b_cp[active_constraints]
+                h_cp_active = A_cp[active_constraints] @ x_cp + B_cp[active_constraints] @ y_cp - b_cp[active_constraints]
                 objective = cp.Minimize( f_cp + lamb * (g_cp + gamma_opt.T @ h_cp - g_opt_cp - gamma_opt.T @ h_opt_cp) + 0.5 * lamb**2 * cp.sum_squares(h_cp_active)  )
             y_cp.value = y_opt
             problem = cp.Problem(objective, constraints)
