@@ -200,8 +200,6 @@ if __name__ == '__main__':
             h_cp = A_cp @ x_cp + B_cp @ y_cp - b_cp
             h_opt_cp = A_cp @ x_opt + B_cp @ y_opt - b_cp
 
-
-            h_cp = A_cp @ x_cp + B_cp @ y_cp - b_cp
             if sum(active_constraints) == 0:
                 objective = cp.Minimize( f_cp + lamb * (g_cp + gamma_opt.T @ h_cp - g_opt_cp - gamma_opt.T @ h_opt_cp))
             else:
