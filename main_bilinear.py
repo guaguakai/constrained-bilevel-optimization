@@ -120,7 +120,7 @@ if __name__ == '__main__':
             solution, = cvxpylayer(xx, A_xx, b_xx)
             loss = f(xx, solution)  # + 1/2 * x @ x
             gradient = torch.autograd.grad(loss, xx)[0]
-            gradient = torch.clamp(gradient, min=-D, max=D)
+            # gradient = torch.clamp(gradient, min=-D, max=D)
             with torch.no_grad():
                 # x += delta
                 # x -= gradient * lr
@@ -217,7 +217,7 @@ if __name__ == '__main__':
             # Gradient and variable update
             D = eps**3
             gradient = torch.autograd.grad(final_lagrangian, xx)[0]
-            gradient = torch.clamp(gradient, min=-D, max=D)
+            # gradient = torch.clamp(gradient, min=-D, max=D)
             with torch.no_grad():
                 if solver == 'ffo':
                     x.grad = gradient

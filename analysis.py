@@ -24,8 +24,8 @@ if __name__ == '__main__':
 
     eps = 0.01
     ydim_list = [5, 10, 20, 50, 100, 200, 500] # , 800, 1000] # list(range(100,1000,100))
-    directory_path = 'exp1/'
-    # directory_path = 'exp1_bilinear/'
+    # directory_path = 'exp1/'
+    directory_path = 'exp1_bilinear/'
     seed_list = list(set(range(1,11,1))) # - set([2,9,29]))
     for ydim in ydim_list:
         directory_name = directory_path + 'ydim{}'.format(ydim)
@@ -80,8 +80,8 @@ if __name__ == '__main__':
         plt.fill_between(x_list, cvxpylayer_result_mean[ydim][:,1] - cvxpylayer_result_std[ydim][:,1], cvxpylayer_result_mean[ydim][:,1] + cvxpylayer_result_std[ydim][:,1], alpha=0.3, zorder=4)
 
         # sns.lineplot(x=x_list, y=ffoc_result_mean[ydim][:,1], label='C-F2BA', ax=ax1, linewidth=2.5, zorder=6)
-        # sns.lineplot(x=x_list, y=ffoc_result_mean[ydim][:,1], label='C-F2BA (better)', ax=ax1, linewidth=2.5, zorder=6)
-        # plt.fill_between(x_list, ffoc_result_mean[ydim][:,1] - ffoc_result_std[ydim][:,1], ffoc_result_mean[ydim][:,1] + ffoc_result_std[ydim][:,1], alpha=0.3, zorder=4)
+        sns.lineplot(x=x_list, y=ffoc_result_mean[ydim][:,1], label='C-F2BA (better)', ax=ax1, linewidth=2.5, zorder=6)
+        plt.fill_between(x_list, ffoc_result_mean[ydim][:,1] - ffoc_result_std[ydim][:,1], ffoc_result_mean[ydim][:,1] + ffoc_result_std[ydim][:,1], alpha=0.3, zorder=4)
         
         # sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='C-F2BA', ax=ax1, linewidth=2.5, zorder=10)
         sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='C-F2BA (friendly)', ax=ax1, linewidth=2.5, zorder=10)

@@ -231,7 +231,7 @@ if __name__ == '__main__':
             # Gradient and variable update
             D = eps**3
             gradient = torch.autograd.grad(final_lagrangian, xx)[0]
-            gradient = torch.clamp(gradient, min=-D, max=D)
+            # gradient = torch.clamp(gradient, min=-D, max=D)
             with torch.no_grad():
                 if solver == 'ffo':
                     x.grad = gradient
