@@ -21,4 +21,4 @@ echo $ITER
 
 # Running linear inequality
 # Change this to main_bilinear.py for bilinear case
-python3 main_bilinear.py --folder=$FOLDER --solver=$SOLVER --seed=$SEED --ydim=$YDIM --n-constraints=$NCON --n-iterations=$ITER --lr=0.01 --eps=$EPS
+python3 main_linear.py --folder=$FOLDER --solver=$SOLVER --seed=$SEED --ydim=$YDIM --n-constraints=$NCON --n-iterations=$ITER --lr=0.01 --eps=$EPS
