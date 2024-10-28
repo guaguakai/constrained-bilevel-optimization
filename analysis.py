@@ -76,21 +76,22 @@ if __name__ == '__main__':
         x_list = list(range(1, ffo_result_mean[ydim].shape[0] + 1))
         
         # Create a secondary y-axis
-        sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='FFO', ax=ax1, linewidth=2.5, zorder=10)
+        sns.lineplot(x=x_list, y=cvxpylayer_result_mean[ydim][:,1], label='cvxpylayer', ax=ax1, linewidth=2.5, zorder=11)
+        plt.fill_between(x_list, cvxpylayer_result_mean[ydim][:,1] - cvxpylayer_result_std[ydim][:,1], cvxpylayer_result_mean[ydim][:,1] + cvxpylayer_result_std[ydim][:,1], alpha=0.3, zorder=10)
+        
+        sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='F2CBA (Algorithm 4)', ax=ax1, linewidth=2.5, zorder=9)
         plt.fill_between(x_list, ffo_result_mean[ydim][:,1] - ffo_result_std[ydim][:,1], ffo_result_mean[ydim][:,1] + ffo_result_std[ydim][:,1], alpha=0.3, zorder=4)
-
-        sns.lineplot(x=x_list, y=ffoc_result_mean[ydim][:,1], label='FFO complex', ax=ax1, linewidth=2.5, zorder=6)
+        
+        sns.lineplot(x=x_list, y=ffoc_result_mean[ydim][:,1], label='F2CBA (Algorithm 3)', ax=ax1, linewidth=2.5, zorder=6)
         plt.fill_between(x_list, ffoc_result_mean[ydim][:,1] - ffoc_result_std[ydim][:,1], ffoc_result_mean[ydim][:,1] + ffoc_result_std[ydim][:,1], alpha=0.3, zorder=4)
-
-        sns.lineplot(x=x_list, y=cvxpylayer_result_mean[ydim][:,1], label='cvxpylayer', ax=ax1, linewidth=2.5, zorder=5)
-        plt.fill_between(x_list, cvxpylayer_result_mean[ydim][:,1] - cvxpylayer_result_std[ydim][:,1], cvxpylayer_result_mean[ydim][:,1] + cvxpylayer_result_std[ydim][:,1], alpha=0.3, zorder=4)
 
         ax1.set_ylabel('Optimality gap', fontsize=28)
         ax1.legend(loc='upper right', fontsize=28, frameon=False)
 
         ax2 = ax1.twinx()
-        sns.barplot(x=x_list, y=grad_differences[ydim], label='grad_diff', ax=ax2, zorder=3)
+        sns.barplot(x=x_list, y=grad_differences[ydim], label='grad_diff', ax=ax2, zorder=3, color='gray')
         ax2.set_ylabel('Gradient error', fontsize=28)
+        ax2.get_legend().remove()
 
         ax1.set_xlabel('Iteration', fontsize=28)
         x_ticks = list(range(0, ffo_result_mean[ydim].shape[0], 50))
@@ -99,7 +100,7 @@ if __name__ == '__main__':
 
         y1_min, y1_max = ax1.get_ylim()
         y2_min, y2_max = ax2.get_ylim()
-        ax1.set_ylim(bottom=0)
+        ax1.set_ylim(bottom=0, top=2)
         ax2.set_ylim(bottom=0, top=1)
 
         ax1.set_zorder(ax2.get_zorder() + 1)
@@ -174,7 +175,9 @@ if __name__ == '__main__':
 
     # Adjust the legend
     handles, labels = g.get_legend_handles_labels()
-    labels = ['FFO', 'cvxpylayer']  # Remove "variable" from legend labels
+    labels = ['F2CBA', 'cvxpylayer']  # Remove "variable" from legend labels
+    handles = handles[::-1]
+    labels = labels[::-1]
     g.legend(handles=handles, labels=labels, title='', fontsize=28, frameon=False)
     
     plt.tight_layout()
@@ -240,7 +243,7 @@ if __name__ == '__main__':
 
             x_list = list(range(1, ffo_result_mean[ydim][eps].shape[0] + 1))
             # Create a secondary y-axis
-            sns.lineplot(x=x_list, y=ffo_result_mean[ydim][eps][:,1], label='FFO ' + r'$\alpha^2$' + '={}'.format(eps), ax=ax1, linewidth=2.5)
+            sns.lineplot(x=x_list, y=ffo_result_mean[ydim][eps][:,1], label='F2CBA ' + r'$\alpha^2$' + '={}'.format(eps), ax=ax1, linewidth=2.5)
             plt.fill_between(x_list, ffo_result_mean[ydim][eps][:,1] - ffo_result_std[ydim][eps][:,1], ffo_result_mean[ydim][eps][:,1] + ffo_result_std[ydim][eps][:,1], alpha=0.3)
 
         ax1.set_ylabel('Optimality gap', fontsize=28)
