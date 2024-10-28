@@ -79,12 +79,12 @@ if __name__ == '__main__':
         sns.lineplot(x=x_list, y=cvxpylayer_result_mean[ydim][:,1], label='cvxpylayer', ax=ax1, linewidth=2.5, zorder=11)
         plt.fill_between(x_list, cvxpylayer_result_mean[ydim][:,1] - cvxpylayer_result_std[ydim][:,1], cvxpylayer_result_mean[ydim][:,1] + cvxpylayer_result_std[ydim][:,1], alpha=0.3, zorder=10)
         
-        sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='F2CBA (Algorithm 4)', ax=ax1, linewidth=2.5, zorder=9)
-        plt.fill_between(x_list, ffo_result_mean[ydim][:,1] - ffo_result_std[ydim][:,1], ffo_result_mean[ydim][:,1] + ffo_result_std[ydim][:,1], alpha=0.3, zorder=4)
-        
         sns.lineplot(x=x_list, y=ffoc_result_mean[ydim][:,1], label='F2CBA (Algorithm 3)', ax=ax1, linewidth=2.5, zorder=6)
         plt.fill_between(x_list, ffoc_result_mean[ydim][:,1] - ffoc_result_std[ydim][:,1], ffoc_result_mean[ydim][:,1] + ffoc_result_std[ydim][:,1], alpha=0.3, zorder=4)
 
+        sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='F2CBA (Algorithm 4)', ax=ax1, linewidth=2.5, zorder=9)
+        plt.fill_between(x_list, ffo_result_mean[ydim][:,1] - ffo_result_std[ydim][:,1], ffo_result_mean[ydim][:,1] + ffo_result_std[ydim][:,1], alpha=0.3, zorder=4)
+        
         ax1.set_ylabel('Optimality gap', fontsize=28)
         ax1.legend(loc='upper right', fontsize=28, frameon=False)
 
@@ -100,7 +100,7 @@ if __name__ == '__main__':
 
         y1_min, y1_max = ax1.get_ylim()
         y2_min, y2_max = ax2.get_ylim()
-        ax1.set_ylim(bottom=0, top=2)
+        ax1.set_ylim(bottom=0, top=1)
         ax2.set_ylim(bottom=0, top=1)
 
         ax1.set_zorder(ax2.get_zorder() + 1)
