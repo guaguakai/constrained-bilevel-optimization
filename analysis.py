@@ -162,6 +162,8 @@ if __name__ == '__main__':
         time_results['ydim'].append(ydim)
 
     time_results = pd.DataFrame(time_results)
+    time_results = time_results[['cvxpylayer', 'ffo', 'ydim']]
+
     plt.figure(figsize=(10, 6))
     g = sns.barplot(x='ydim', y='value', hue='variable', data=pd.melt(time_results, ['ydim']))
     # plt.errorbar(time_results['ydim'], time_results['ffo'], yerr=ffo_result_std[ydim][:,2], fmt='none', color='black', capsize=5)
@@ -175,9 +177,9 @@ if __name__ == '__main__':
 
     # Adjust the legend
     handles, labels = g.get_legend_handles_labels()
-    labels = ['F2CBA', 'cvxpylayer']  # Remove "variable" from legend labels
-    handles = handles[::-1]
-    labels = labels[::-1]
+    labels = ['cvxpylayer', 'F2CBA']  # Remove "variable" from legend labels
+    # handles = handles[::-1]
+    # labels = labels[::-1]
     g.legend(handles=handles, labels=labels, title='', fontsize=28, frameon=False)
     
     plt.tight_layout()
