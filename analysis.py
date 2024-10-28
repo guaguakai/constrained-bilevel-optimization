@@ -84,8 +84,8 @@ if __name__ == '__main__':
         plt.fill_between(x_list, ffoc_result_mean[ydim][:,1] - ffoc_result_std[ydim][:,1], ffoc_result_mean[ydim][:,1] + ffoc_result_std[ydim][:,1], alpha=0.3, zorder=4)
         
         # sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='C-F2BA', ax=ax1, linewidth=2.5, zorder=10)
-        sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='F2CBA (Algorithm 4)', ax=ax1, linewidth=2.5, zorder=10)
-        plt.fill_between(x_list, ffo_result_mean[ydim][:,1] - ffo_result_std[ydim][:,1], ffo_result_mean[ydim][:,1] + ffo_result_std[ydim][:,1], alpha=0.3, zorder=4)
+        # sns.lineplot(x=x_list, y=ffo_result_mean[ydim][:,1], label='F2CBA (Algorithm 4)', ax=ax1, linewidth=2.5, zorder=10)
+        # plt.fill_between(x_list, ffo_result_mean[ydim][:,1] - ffo_result_std[ydim][:,1], ffo_result_mean[ydim][:,1] + ffo_result_std[ydim][:,1], alpha=0.3, zorder=4)
 
         # sns.lineplot(x=x_list, y=cvxpylayer_result_mean[ydim][:,1], label='Diff. optimization', ax=ax1, linewidth=2.5, zorder=5)
         # plt.fill_between(x_list, cvxpylayer_result_mean[ydim][:,1] - cvxpylayer_result_std[ydim][:,1], cvxpylayer_result_mean[ydim][:,1] + cvxpylayer_result_std[ydim][:,1], alpha=0.3, zorder=4)
